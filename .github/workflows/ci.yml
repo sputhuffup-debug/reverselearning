@@ -27,16 +27,33 @@ jobs:
 
       - name: PSScriptAnalyzer
         run: |
-          Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
-          $results = @(Invoke-ScriptAnalyzer -Path scripts, tests -Recurse -Severity Error, Warning `
-                         -ExcludeRule PSAvoidUsingWriteHost)
+          try {
+            if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) {
+              Install-PackageProvider NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force | Out-Null
+              Set-PSRepository PSGallery -InstallationPolicy Trusted
+              Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+            }
+            Import-Module PSScriptAnalyzer
+            Write-Host "PSScriptAnalyzer $((Get-Module PSScriptAnalyzer).Version)"
+            # -Path takes a single path, so analyze each folder in turn.
+            $results = @(foreach ($dir in 'scripts', 'tests') {
+              Invoke-ScriptAnalyzer -Path $dir -Recurse -Severity Error, Warning -ExcludeRule PSAvoidUsingWriteHost
+            })
+          } catch {
+            Write-Host "::error title=PSScriptAnalyzer setup::$($_.Exception.Message)"
+            exit 1
+          }
+          $root = (Get-Location).Path + '\'
           foreach ($r in $results) {
             $level = if ($r.Severity -eq 'Error') { 'error' } else { 'warning' }
-            Write-Host "::$level file=$($r.ScriptPath | Resolve-Path -Relative),line=$($r.Line),title=$($r.RuleName)::$($r.Message)"
+            $file  = $r.ScriptPath.Replace($root, '').Replace('\', '/')
+            Write-Host "::$level file=$file,line=$($r.Line),title=$($r.RuleName)::$($r.Message)"
           }
           $results | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
-          if ($results.Count -gt 0) { exit 1 }
+          if ($results.Count -gt 0) {
+            Write-Host "::error title=PSScriptAnalyzer::$($results.Count) finding(s); see the annotations above"
+            exit 1
+          }
 
   build-and-test:
     runs-on: windows-latest
@@ -56,12 +73,14 @@ jobs:
         run: .\scripts\Build-PortableRE.ps1 -Destination $env:KIT
 
       - name: Smoke-test the kit
-        run: .\tests\Test-Kit.ps1 -Kit $env:KIT
+        run: .\tests\Test-Kit.ps1 -Kit $env:KIT -Headless
 
       - name: Re-run and top-up keep user files
+        if: ${{ !cancelled() }}
         run: .\tests\Test-Rerun.ps1 -Kit $env:KIT
 
       - name: Move the kit (path with a space) and test again, with Ghidra headless
+        if: ${{ !cancelled() }}
         run: |
           New-Item -ItemType Directory (Split-Path $env:MOVED) | Out-Null
           Move-Item $env:KIT $env:MOVED

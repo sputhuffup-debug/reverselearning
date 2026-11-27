@@ -17,3 +17,9 @@ _download/
 Thumbs.db
 .DS_Store
 .vscode/
+
+# Practice program build output
+lab/bin/
+
+# Claude Code agent worktrees
+.claude/worktrees/

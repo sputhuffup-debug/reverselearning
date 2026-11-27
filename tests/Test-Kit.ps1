@@ -44,18 +44,24 @@ function Write-Result {
 
 function Invoke-Program {
     # Runs $Exe with $InputLines on stdin. Returns @{ Code; Output }.
-    param([string]$Exe, [string[]]$InputLines)
-    $psi = New-Object Diagnostics.ProcessStartInfo
-    $psi.FileName               = $Exe
-    $psi.UseShellExecute        = $false
-    $psi.RedirectStandardInput  = $true
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError  = $true
-    $p = [Diagnostics.Process]::Start($psi)
-    foreach ($l in $InputLines) { $p.StandardInput.WriteLine($l) }
-    $p.StandardInput.Close()
-    $out = $p.StandardOutput.ReadToEnd() + $p.StandardError.ReadToEnd()
-    if (-not $p.WaitForExit(15000)) { $p.Kill(); return @{ Code = -1; Output = "$out<timed out>" } }
+    param([string]$Exe, [string[]]$InputLines, [string[]]$Arguments = @(), [string]$WorkingDirectory = '')
+    # Feed stdin from a file of raw ASCII bytes. Redirecting through Process.StandardInput on
+    # Windows PowerShell 5.1 sends a UTF-8 BOM first, which corrupts the first line read.
+    $base = Join-Path $OutDir ('run-' + [IO.Path]::GetRandomFileName())
+    $in = "$base.in"; $stdout = "$base.out"; $stderr = "$base.err"
+    [IO.File]::WriteAllBytes($in, [Text.Encoding]::ASCII.GetBytes((($InputLines -join "`n") + "`n")))
+    $sp = @{ FilePath = $Exe; NoNewWindow = $true; PassThru = $true
+             RedirectStandardInput = $in; RedirectStandardOutput = $stdout; RedirectStandardError = $stderr }
+    if ($Arguments.Count -gt 0) { $sp.ArgumentList = $Arguments }
+    if ($WorkingDirectory)      { $sp.WorkingDirectory = $WorkingDirectory }
+    $p = Start-Process @sp
+    $null = $p.Handle   # cache the handle so ExitCode is available after exit
+    $done = $p.WaitForExit(15000)
+    if (-not $done) { $p.Kill() }
+    $p.WaitForExit()    # the untimed overload also waits until redirected output is fully written
+    $out = ((Get-Content -LiteralPath $stdout -Raw) + (Get-Content -LiteralPath $stderr -Raw))
+    if ($null -eq $out) { $out = '' }
+    if (-not $done) { return @{ Code = -1; Output = "$out<timed out>" } }
     @{ Code = $p.ExitCode; Output = $out.Trim() }
 }
 
@@ -92,8 +98,22 @@ function Test-PortableBlock {
     Write-Result ($begin -eq 1) "$Label exactly one #PORTABLE block" "(found $begin)"
     Write-Result ($javaOverrides.Count -eq 1 -and $javaOverrides[0] -eq "JAVA_HOME_OVERRIDE=$r/jdk") `
         "$Label JAVA_HOME_OVERRIDE points at $r/jdk" "(found: $($javaOverrides -join '; '))"
-    Write-Result ($props -contains "VMARGS=-Dapplication.settingsdir=$r/data/ghidra-settings") "$Label settingsdir points into the kit"
-    Write-Result ($props -contains "VMARGS=-Duser.home=$r/data/home") "$Label user.home points into the kit"
+    # VMARGS can't contain spaces (see fix-ghidra-paths.ps1): expect the 8.3 short path, or no lines at all.
+    $vm = $r
+    if ($r -match ' ') {
+        $vm = $null
+        try { $vm = (New-Object -ComObject Scripting.FileSystemObject).GetFolder($Root).ShortPath -replace '\\', '/' } catch { $vm = $null }
+        if ($vm -match ' ') { $vm = $null }
+    }
+    $vmLines = @($props | Where-Object { $_ -match '^VMARGS=-D(application\.settingsdir|user\.home)=' })
+    if ($vm) {
+        Write-Result ($props -contains "VMARGS=-Dapplication.settingsdir=$vm/data/ghidra-settings") "$Label settingsdir points into the kit ($vm)"
+        Write-Result ($props -contains "VMARGS=-Duser.home=$vm/data/home") "$Label user.home points into the kit ($vm)"
+    } else {
+        Write-Host "  NOTE  $Label no 8.3 short name for a path with spaces; settings stay in %APPDATA%"
+        Write-Result ($vmLines.Count -eq 0) "$Label no space-containing VMARGS written" "(found: $($vmLines -join '; '))"
+    }
+    $script:SettingsInKit = [bool]$vm
 }
 
 function Invoke-LauncherFix {
@@ -101,6 +121,11 @@ function Invoke-LauncherFix {
     # launcher sets it (%~dp0, which always ends in a backslash), without starting Ghidra itself.
     $line = Get-Content (Join-Path $Kit 'Ghidra.cmd') | Where-Object { $_ -match 'fix-ghidra-paths' } | Select-Object -First 1
     if (-not $line) { Write-Result $false 'Ghidra.cmd calls fix-ghidra-paths.ps1'; return }
+    # Start from stale paths, so the check proves the launcher really rewrites them.
+    $propsFile = Join-Path $Kit 'ghidra\support\launch.properties'
+    $r = $Kit -replace '\\', '/'
+    $stale = (Get-Content -LiteralPath $propsFile) | ForEach-Object { $_.Replace("$r/", 'X:/old-location/') }
+    Set-Content -LiteralPath $propsFile -Value $stale -Encoding ASCII
     $tmp = Join-Path ([IO.Path]::GetTempPath()) ('launcher-' + [IO.Path]::GetRandomFileName() + '.cmd')
     Set-Content -LiteralPath $tmp -Encoding ASCII -Value @('@echo off', "set `"ROOT=$Kit\`"", $line, 'exit /b %errorlevel%')
     $p = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "`"$tmp`"" -NoNewWindow -Wait -PassThru
@@ -117,47 +142,97 @@ Test-PortableBlock $Kit 're-applied:'
 
 # --- compile the lab -----------------------------------------------------------
 Write-Host "Compile lab (output in $OutDir)"
-$gcc = Join-Path $Kit 'w64devkit\bin\gcc.exe'
+# Uses lab\Makefile with the kit's make, the same way a student builds from Devkit.cmd.
+$make = Join-Path $Kit 'w64devkit\bin\make.exe'
 $env:PATH = (Join-Path $Kit 'w64devkit\bin') + ';' + $env:PATH
-$exes = @{}
-foreach ($src in Get-ChildItem -LiteralPath $LabSource -Filter '*.c') {
-    $exe = Join-Path $OutDir ($src.BaseName + '.exe')
-    $p = Start-Process -FilePath $gcc -ArgumentList '-O0', '-s', '-Wall', "`"$($src.FullName)`"", '-o', "`"$exe`"" `
-                       -NoNewWindow -Wait -PassThru
-    $ok = ($p.ExitCode -eq 0) -and (Test-Path -LiteralPath $exe)
-    Write-Result $ok "gcc $($src.Name)" "(exit $($p.ExitCode))"
-    if ($ok) { $exes[$src.BaseName] = $exe }
+$built = $false
+if ($OutDir -match ' ') {
+    Write-Result $false 'make lab' "(OUT path has a space, which make can't handle: $OutDir; pass -OutDir)"
+} else {
+    $outArg = 'OUT=' + ($OutDir.TrimEnd('\') -replace '\\', '/')
+    $r = Invoke-Program $make @() -Arguments @('-C', "`"$LabSource`"", $outArg)
+    Write-Host $r.Output
+    $built = $r.Code -eq 0
+    $tail = (($r.Output -split "`n") | Select-Object -Last 12) -join "`n"
+    Write-Result $built 'make lab (every day)' "(exit $($r.Code))`n$tail"
+    # Nothing should be written next to the sources. (-Include doesn't filter with -LiteralPath on PS 5.1.)
+    $stray = @(Get-ChildItem -LiteralPath $LabSource -Recurse -File | Where-Object { $_.Extension -in '.exe', '.o', '.obj' })
+    Write-Result ($stray.Count -eq 0) 'make left lab\ clean' "(found: $($stray.FullName -join ', '))"
 }
 
-# --- run the practice programs -------------------------------------------------
-Write-Host "Practice programs"
-if ($exes['ex1_password']) {
-    Test-Program 'ex1 right password' $exes['ex1_password'] @('hunter2-ghidra') 0 'Access granted!'
-    Test-Program 'ex1 wrong password' $exes['ex1_password'] @('hunter2') 1 'Access denied.'
-}
-if ($exes['ex2_serial']) {
-    Test-Program 'ex2 alice/cfb71247'  $exes['ex2_serial'] @('alice', 'cfb71247') 0 'Valid serial.'
-    Test-Program 'ex2 wrong serial'    $exes['ex2_serial'] @('alice', 'deadbeef') 1 'Invalid serial.'
-    Test-Program 'ex2 short name'      $exes['ex2_serial'] @('bob') 1 'at least 4 characters'
-    # Cross-check the keygen against the program for another name, if Python is around.
-    $py = Get-Command python -ErrorAction SilentlyContinue
-    if ($py) {
-        $keygen = Join-Path $LabSource 'solutions\keygen_ex2.py'
-        $serial = (& $py.Source -I $keygen 'reverser').Trim()
-        Test-Program "ex2 keygen serial for 'reverser' ($serial)" $exes['ex2_serial'] @('reverser', $serial) 0 'Valid serial.'
-    } else {
-        Write-Host "  SKIP  ex2 keygen cross-check (python not found)"
+# --- Devkit.cmd opens the shell in the repo's lab folder ------------------------
+Write-Host "Devkit.cmd"
+function ConvertTo-Comparable { param([string]$Path) ($Path.Trim() -replace '\\', '/').TrimEnd('/').ToLowerInvariant() }
+$labPathFile = Join-Path $Kit 'data\lab-path.txt'
+$saved = if (Test-Path -LiteralPath $labPathFile) { (Get-Content -LiteralPath $labPathFile | Select-Object -First 1) } else { '' }
+Write-Result ((ConvertTo-Comparable $saved) -eq (ConvertTo-Comparable $LabSource)) 'data\lab-path.txt points at the repo lab folder' `
+    "(found '$saved', expected '$LabSource')"
+
+# Run a copy of Devkit.cmd (in the kit root, so %~dp0 matches) with "start" removed, so its shell
+# runs in this window; feed it "pwd" and check where the shell really is.
+$probe = Join-Path $Kit ('devkit-probe-' + [IO.Path]::GetRandomFileName() + '.cmd')
+$body  = (Get-Content -LiteralPath (Join-Path $Kit 'Devkit.cmd')) | ForEach-Object { $_ -replace '^(\s*)start\s+"[^"]*"\s+', '$1' }
+Set-Content -LiteralPath $probe -Value $body -Encoding ASCII
+try {
+    $cases = @(
+        @{ Name = 'no argument -> lab-path.txt'; Args = @();                                   Expect = $LabSource },
+        @{ Name = 'argument -> that folder';     Args = @("`"$OutDir`"");                      Expect = $OutDir },
+        @{ Name = 'missing folder -> kit lab\';  Args = @("`"$(Join-Path $OutDir 'nope')`"");  Expect = (Join-Path $Kit 'lab') }
+    )
+    foreach ($c in $cases) {
+        $r   = Invoke-Program 'cmd.exe' @('pwd', 'exit') -Arguments (@('/c', "`"`"$probe`"") + $c.Args + @('"'))
+        $cwd = (($r.Output -split "`n") | Where-Object { $_ -match '^\s*[A-Za-z]:[/\\]' } | Select-Object -Last 1)
+        if ($null -eq $cwd) { $cwd = '' }
+        Write-Result ((ConvertTo-Comparable $cwd) -eq (ConvertTo-Comparable $c.Expect)) "Devkit.cmd shell starts in: $($c.Name)" `
+            "(expected '$($c.Expect)'; output: $($r.Output))"
     }
+} finally {
+    Remove-Item -LiteralPath $probe -ErrorAction SilentlyContinue
 }
-if ($exes['ex3_crackme']) {
-    Test-Program 'ex3 right key' $exes['ex3_crackme'] @('R3v3rs1ng_D4y1') 0 'License OK.'
-    Test-Program 'ex3 wrong key' $exes['ex3_crackme'] @('R3v3rs1ng')      0 'Bad license key.'
+
+# --- run the practice programs, day by day ------------------------------------
+# Each lab\dayN\Makefile lists its programs (PROGS = name:source ...); each day's answers are in
+# lab\solutions\dayN\checks.psd1. Every program must be built and have at least one check.
+$exes = @{}
+$py = Get-Command python -ErrorAction SilentlyContinue
+foreach ($dayDir in Get-ChildItem -LiteralPath $LabSource -Directory | Where-Object { $_.Name -match '^day\d+$' } | Sort-Object { [int]($_.Name -replace '\D', '') }) {
+    $day = $dayDir.Name
+    Write-Host "Practice programs: $day"
+    $progLine = Select-String -Path (Join-Path $dayDir.FullName 'Makefile') -Pattern '^\s*PROGS\s*=\s*(.+)$' | Select-Object -First 1
+    $progs = if ($progLine) { @($progLine.Matches[0].Groups[1].Value -split '\s+' | Where-Object { $_ } | ForEach-Object { ($_ -split ':')[0] }) } else { @() }
+    Write-Result ($progs.Count -gt 0) "$day Makefile lists its programs"
+    foreach ($prog in $progs) {
+        $exe = Join-Path $OutDir "$day\$prog.exe"
+        $ok  = $built -and (Test-Path -LiteralPath $exe)
+        Write-Result $ok "built $day/$prog.exe"
+        if ($ok) { $exes["$day/$prog"] = $exe }
+    }
+
+    $solDir     = Join-Path $LabSource "solutions\$day"
+    $checksFile = Join-Path $solDir 'checks.psd1'
+    if (-not (Test-Path -LiteralPath $checksFile)) { Write-Result $false "$day has lab\solutions\$day\checks.psd1"; continue }
+    $checks = @((Import-PowerShellDataFile -LiteralPath $checksFile).Checks)
+    foreach ($prog in $progs) {
+        $n = @($checks | Where-Object { $_.Program -eq $prog }).Count
+        Write-Result ($n -gt 0) "$day/$prog has answer checks" "(none in $checksFile)"
+    }
+    foreach ($c in $checks) {
+        $exe = $exes["$day/$($c.Program)"]
+        if (-not $exe) { continue }   # already reported as not built
+        $inputLines = @($c.Input)
+        if ($c.Keygen) {
+            if (-not $py) { Write-Host "  SKIP  $day $($c.Name) (python not found)"; continue }
+            $keygenOut = (& $py.Source -I (Join-Path $solDir $c.Keygen) @($c.KeygenArgs) | Out-String).Trim()
+            $inputLines = @($inputLines | ForEach-Object { $_.Replace('{keygen}', $keygenOut) })
+        }
+        Test-Program "$day $($c.Name)" $exe $inputLines $c.Exit $c.Expect
+    }
 }
 
 # --- Ghidra headless import (optional, takes a minute or two) -------------------
 if ($Headless) {
     Write-Host "Ghidra headless import"
-    $target = $exes['ex1_password']
+    $target = $exes['day1/ex1']
     if (-not $target) {
         Write-Result $false 'Ghidra headless import' '(ex1 did not compile)'
     } else {
@@ -167,15 +242,36 @@ if ($Headless) {
         $appData  = if ($env:APPDATA) { Join-Path $env:APPDATA 'ghidra' } else { '' }
         $appDataBefore = $appData -and (Test-Path -LiteralPath $appData)
         $log = Join-Path $OutDir 'headless.log'
+        $nul = Join-Path $OutDir 'empty.in'
+        [IO.File]::WriteAllBytes($nul, [byte[]]@())   # empty stdin, so "Press any key" can't block
+        # Same environment Ghidra.cmd sets up: the kit's JDK, not whatever Java the machine has.
+        $env:JAVA_HOME = Join-Path $Kit 'jdk'
+        $env:PATH      = (Join-Path $Kit 'jdk\bin') + ';' + $env:PATH
         $p = Start-Process -FilePath 'cmd.exe' -NoNewWindow -Wait -PassThru -RedirectStandardOutput $log `
+                -RedirectStandardInput $nul `
                 -ArgumentList '/c', "`"`"$Kit\ghidra\support\analyzeHeadless.bat`" `"$projDir`" ci -import `"$target`" -deleteProject`""
         $text = Get-Content -LiteralPath $log -Raw
         if ($null -eq $text) { $text = '' }
         $tail = (($text -split "`n") | Select-Object -Last 15) -join "`n"
-        Write-Result ($p.ExitCode -eq 0 -and $text -match 'Import succeeded') 'analyzeHeadless imports ex1' "(exit $($p.ExitCode))`n$tail"
+        $imported = $p.ExitCode -eq 0 -and $text -match 'Import succeeded'
+        Write-Result $imported 'analyzeHeadless imports ex1' "(exit $($p.ExitCode))`n$tail"
+        if (-not $imported) {
+            # Ask Ghidra's launcher helper directly what it makes of the kit's JDK.
+            $ls   = Join-Path $Kit 'ghidra\support\LaunchSupport.jar'
+            $java = Join-Path $Kit 'jdk\bin\java.exe'
+            foreach ($lsArgs in @(@('-jdk_home'), @('-jdk_home', '-save'), @('-vmargs'))) {
+                $r = Invoke-Program $java @() -Arguments (@('-cp', "`"$ls`"", 'LaunchSupport', "`"$(Join-Path $Kit 'ghidra')`"") + `
+                        ($lsArgs | ForEach-Object { if ($_ -match ' ') { "`"$_`"" } else { $_ } }))
+                Write-Host "::warning title=LaunchSupport $($lsArgs[0])::exit $($r.Code): $(($r.Output -replace "`r", '') -replace "`n", '%0A')"
+            }
+            $lb = Get-Content (Join-Path $Kit 'ghidra\support\launch.bat') | Select-String -Pattern 'LaunchSupport|JAVA_HOME|JAVA_CMD' | ForEach-Object { $_.Line.Trim() }
+            Write-Host "::warning title=launch.bat lines::$(($lb -join '%0A') -replace '::', ': :')"
+            $lp = Get-Content (Join-Path $Kit 'ghidra\support\launch.properties') | Where-Object { $_ -notmatch '^\s*(#|$)' }
+            Write-Host "::warning title=launch.properties settings::$($lp -join '%0A')"
+        }
         $settingsUsed = @(Get-ChildItem -LiteralPath $settings -Recurse -Force -ErrorAction SilentlyContinue).Count -gt 0
-        Write-Result $settingsUsed 'Ghidra wrote its settings into data\ghidra-settings'
-        if ($appData -and -not $appDataBefore) {
+        if ($script:SettingsInKit) { Write-Result $settingsUsed 'Ghidra wrote its settings into data\ghidra-settings' }
+        if ($script:SettingsInKit -and $appData -and -not $appDataBefore) {
             Write-Result (-not (Test-Path -LiteralPath $appData)) 'Ghidra left %APPDATA%\ghidra alone'
         }
     }
