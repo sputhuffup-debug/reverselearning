@@ -98,7 +98,7 @@ Each day ships as one milestone. A day is done when:
 | Milestone | Delivers | Depends on |
 | --- | --- | --- |
 | M0: Kit and CI (in progress) | Portable kit, Windows CI, Makefile, Day 1 guide | |
-| M1: Lab layout and references | `lab/day1/` folders, a top-level Makefile that builds every day, CI testing each day; the Ghidra and x64dbg references started from Day 1's features | M0 |
+| M1: Lab layout and references (done) | `lab/day1/` folders, a top-level Makefile that builds every day, CI testing each day; the Ghidra and x64dbg references started from Day 1's features | M0 |
 | M2 to M4: Days 2 to 4 | Guides and programs for optimized code, control flow, data structures | M1 |
 | M5: Day 5 | First guided scripting day: skeletons, solutions, headless script runs in CI | M4 |
 | M6 to M9: Days 6 to 9 | C++, PE, DLLs, x64dbg in depth (adds `g++` builds, already in w64devkit) | M5 |
