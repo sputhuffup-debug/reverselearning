@@ -10,6 +10,7 @@
         @{ Name = 'find strcmp calls';       Script = 'Day5FindCalls.java';      Program = 'day1/ex1'; Expect = @('string argument: "hunter2-ghidra"', 'Calls to strcmp: 1') }
         @{ Name = 'find puts calls';         Script = 'Day5FindCalls.java';      Program = 'day1/ex3'; Expect = @('string argument: "Debugger detected. Bye."', 'Calls to puts: 3')
            ScriptArgs = @('puts') }
+        @{ Name = 'TEMP diag ex3 main';      Script = 'Day5Diag.java';           Program = 'day1/ex3'; Expect = @('__show_output__') }
         @{ Name = 'decode ex3 key';          Script = 'Day5DecodeKey.java';      Program = 'day1/ex3'; Expect = @('Key: R3v3rs1ng_D4y1') }
         @{ Name = 'decode day5 ex1 messages'; Script = 'Day5DecodeMessages.java'; Program = 'day5/ex1'; Expect = @('Unlock word: brass-lantern-7', "Keeper's log, week one.", '15 key 0xc1 sealed') }
     )

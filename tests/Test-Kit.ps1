@@ -304,7 +304,7 @@ if ($Headless) {
             $text = Get-Content -LiteralPath $log -Raw
             if ($null -eq $text) { $text = '' }
             $missing = @(@($sc.Expect) | Where-Object { $text.IndexOf($_) -lt 0 })
-            $tail = (($text -split "`n") | Where-Object { $_ -match 'ERROR|Exception|\.java>' } | Select-Object -Last 12) -join "`n"
+            $tail = (($text -split "`n") | Where-Object { $_ -match 'ERROR|Exception|\.java>' } | Select-Object -Last 90) -join "`n"
             Write-Result ($p.ExitCode -eq 0 -and $missing.Count -eq 0) "script $($sc.Name) ($($sc.Script) on $($sc.Program))" `
                 "(exit $($p.ExitCode); missing: $($missing -join ' | '))`n$tail"
         }

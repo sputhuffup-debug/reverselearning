@@ -4,7 +4,9 @@
 //@category Course.Day5
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
@@ -56,15 +58,20 @@ public class Day5FindCalls extends GhidraScript {
                 println("Call to " + target + " at " + from + " in " + callerName);
 
                 // TODO 5: look at the instructions just before the call for references to strings.
+                Set<Address> seen = new HashSet<>();                 // print each string once
                 Instruction prev = getInstructionBefore(call);
                 for (int i = 0; i < LOOK_BACK && prev != null; i++) {
                     if (prev.getFlowType().isCall()) {
                         break;                                      // that belongs to the previous call
                     }
                     for (Reference r : getReferencesFrom(prev.getAddress())) {
-                        Data d = getDataAt(r.getToAddress());       // what the reference points at
-                        if (d != null && d.getValue() instanceof String) {
-                            println("  string argument: \"" + d.getValue() + "\"");
+                        Address to = r.getToAddress();
+                        if (!seen.add(to)) {
+                            continue;                               // already printed this one
+                        }
+                        String str = stringAt(to);
+                        if (str != null) {
+                            println("  string argument: \"" + str + "\"");
                         }
                     }
                     prev = getInstructionBefore(prev);              // one instruction further back
@@ -72,5 +79,29 @@ public class Day5FindCalls extends GhidraScript {
             }
         }
         println("Calls to " + target + ": " + calls);
+    }
+
+    // The string at an address: Ghidra's defined string if there is one, otherwise the bytes up to
+    // the terminating zero, if they are all printable (Ghidra doesn't define every string).
+    private String stringAt(Address a) throws Exception {
+        Data d = getDataAt(a);
+        if (d != null && d.getValue() instanceof String) {
+            return (String) d.getValue();
+        }
+        if (!currentProgram.getMemory().contains(a)) {
+            return null;                                    // e.g. a register or stack reference
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 256; i++) {
+            int b = getByte(a.add(i)) & 0xff;
+            if (b == 0) {
+                return sb.length() >= 4 ? sb.toString() : null;
+            }
+            if (b < 0x20 || b > 0x7e) {
+                return null;                                // not text
+            }
+            sb.append((char) b);
+        }
+        return null;
     }
 }
