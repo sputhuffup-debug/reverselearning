@@ -19,6 +19,8 @@
     powershell -ExecutionPolicy Bypass -File .\Build-PortableRE.ps1 -Force     # update: overwrite with latest versions
 #>
 [CmdletBinding()]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Force',
+    Justification = 'Used by the helper functions (Install-Component, Merge-Tree, Write-IfMissing) via script scope.')]
 param(
     [string]$Destination = (Join-Path (Get-Location) 'RE-Portable'),
     [int]$JdkVersion = 0,           # 0 = use the minimum JDK version the installed Ghidra declares
