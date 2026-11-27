@@ -96,3 +96,20 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | --- | --- | --- | --- |
 | Show or hide Listing fields | Click the Edit the Listing fields button at the top of the Listing. Right-click a field in the header to turn it off, such as Bytes. | | Day 3 |
 | Change a field's settings | Edit → Tool Options → Listing Fields. For example, XREFs Field → Maximum Number of XREFs to Display. | | Day 3 |
+
+## Data types
+
+| Task | How | Shortcut | Day |
+| --- | --- | --- | --- |
+| See a program's types | Window → Data Type Manager. Types you create go in the archive named after the program. | | Day 4 |
+| Create a structure | Data Type Manager: right-click the program's archive → New → Structure. Set its name and size at the bottom of the Structure Editor. | | Day 4 |
+| Edit a structure | Double-click it in the Data Type Manager. In the Structure Editor, double-click a row's Data Type cell and type a type, such as `short`, `char[10]` or `item *`. | | Day 4 |
+| Show padding | Leave bytes no field uses as `undefined`, or turn on the editor's packing option to add padding the way the compiler does. | | Day 4 |
+| Build a structure from code | Decompiler: right-click a pointer variable → Auto Create Structure. Rename the `field_0x..` names afterwards. | | Day 4 |
+| Retype a variable as a struct pointer | Select it in the Decompiler and press Ctrl+L, then enter `item *` or `item **`. | Ctrl+L | Day 4 |
+| Apply a type to data | In the Listing, put the cursor on the data and press `T`, then choose the type. | `T` | Day 4 |
+| Make an array of a type | In the Listing, press `[` on the first element and enter the count. | `[` | Day 4 |
+| Create a type archive | Data Type Manager: arrow menu at the top right → New File Archive. Save it as a `.gdt` file. | | Day 4 |
+| Copy a type into an archive | Drag it from the program's archive onto the `.gdt` archive, then right-click the archive → Save Archive. | | Day 4 |
+| Use an archive in another program | Data Type Manager: arrow menu → Open File Archive, pick the `.gdt`, then apply its types as usual. | | Day 4 |
+| Send a changed type back to its archive | Right-click the type in the program's archive → Commit to Archive, then save the archive. | | Day 4 |
