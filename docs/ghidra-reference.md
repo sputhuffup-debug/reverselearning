@@ -113,3 +113,32 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Copy a type into an archive | Drag it from the program's archive onto the `.gdt` archive, then right-click the archive → Save Archive. | | Day 4 |
 | Use an archive in another program | Data Type Manager: arrow menu → Open File Archive, pick the `.gdt`, then apply its types as usual. | | Day 4 |
 | Send a changed type back to its archive | Right-click the type in the program's archive → Commit to Archive, then save the archive. | | Day 4 |
+
+## Scripting
+
+Scripts are Java classes that extend `GhidraScript`. Most calls below come from [FlatProgramAPI](https://ghidra.re/ghidra_docs/api/ghidra/program/flatapi/FlatProgramAPI.html), which every script can use directly.
+
+| Task | How | Shortcut | Day |
+| --- | --- | --- | --- |
+| Open the Script Manager | Window → Script Manager in the CodeBrowser. Categories are on the left, scripts on the right. | | Day 5 |
+| Find a script | Type in the filter at the bottom of the Script Manager, or pick a category. `//@category Course.Day5` in a script's header puts it under Course → Day5. | | Day 5 |
+| Add a folder of scripts | Script Manager toolbar → Script Directories (the Bundle Manager), then the green plus. Pick the folder, such as `lab/day5/scripts`. Don't add two folders with scripts of the same name. | | Day 5 |
+| Run a script | Select it and click Run Script (the green arrow) in the Script Manager's toolbar. | | Day 5 |
+| Edit a script | Select it and click Edit Script. Save in the editor, then run it again; Ghidra compiles it on every run. | | Day 5 |
+| Read a script's output | Window → Console. Each line starts with the script's name. Compile errors and exceptions appear here too. | | Day 5 |
+| Look up an API call | Click the Help button in the Script Manager's toolbar, or use the online API documentation. | | Day 5 |
+| Print a line | `println("text")` | | Day 5 |
+| Use the open program, or the cursor's address | `currentProgram`, `currentAddress` | | Day 5 |
+| Walk every function | `getFirstFunction()`, then `getFunctionAfter(f)` until it returns `null`. | | Day 5 |
+| Read a function's name, start and size | `f.getName()`, `f.getEntryPoint()`, `f.getBody().getNumAddresses()`. `f.isThunk()` is true for an import stub. | | Day 5 |
+| Find the function at or around an address | `getFunctionAt(a)` for its entry point, `getFunctionContaining(a)` for any address inside it. | | Day 5 |
+| Find references | `getReferencesTo(a)` and `getReferencesFrom(a)`. Each `Reference` has `getFromAddress()`, `getToAddress()` and `getReferenceType()`. | | Day 5 |
+| Read instructions | `getInstructionAt(a)`, `getInstructionBefore(i)`, or `currentProgram.getListing().getInstructions(f.getBody(), true)` for a whole function. | | Day 5 |
+| Read an instruction's parts | `getMnemonicString()`, `getRegister(n)`, `getScalar(n)`, `getFlows()`, and `getFlowType().isCall()`. | | Day 5 |
+| Read defined data, such as a string | `getDataAt(a)`, then `getValue()`. | | Day 5 |
+| Search memory for text or bytes | `findBytes(currentProgram.getMinAddress(), "text")` returns the first match, or `null`. | | Day 5 |
+| Read bytes | `getByte(a)` and `getBytes(a, n)`. Java bytes are signed, so mask with `& 0xff`. | | Day 5 |
+| Move to another address | `a.add(n)`, or `toAddr(0x140001000L)` for a fixed one. | | Day 5 |
+| Find which memory block an address is in | `getMemoryBlock(a).getName()`, such as `.data` or `.rdata`. | | Day 5 |
+| Take arguments in a headless run | `getScriptArgs()`. It returns an empty array in the Script Manager. | | Day 5 |
+| Let Cancel stop a long loop | Check `monitor.isCancelled()` in the loop condition. | | Day 5 |
