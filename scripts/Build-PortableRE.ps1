@@ -216,9 +216,20 @@ foreach ($l in Get-Content $props) {
 }
 $out += '#PORTABLE-BEGIN'
 $out += "JAVA_HOME_OVERRIDE=$r/jdk"
-# Ghidra's launch.bat passes VMARGS to java unquoted, so quote the values to survive spaces in the path.
-$out += "VMARGS=-Dapplication.settingsdir=`"$r/data/ghidra-settings`""
-$out += "VMARGS=-Duser.home=`"$r/data/home`""
+# launch.bat passes VMARGS to java unquoted (a space splits them), and Ghidra's LaunchSupport reads
+# application.settingsdir literally (quotes would become part of the path). So a path with a space
+# uses its 8.3 short form; without one, settings stay in %APPDATA%\ghidra.
+$vm = $r
+if ($r -match ' ') {
+    $vm = $null
+    try { $vm = (New-Object -ComObject Scripting.FileSystemObject).GetFolder($Root).ShortPath -replace '\\', '/' } catch { $vm = $null }
+    if ($vm -match ' ') { $vm = $null }
+    if (-not $vm) { Write-Warning "Kit path has spaces and no 8.3 short name: Ghidra settings will be kept in %APPDATA%\ghidra." }
+}
+if ($vm) {
+    $out += "VMARGS=-Dapplication.settingsdir=$vm/data/ghidra-settings"
+    $out += "VMARGS=-Duser.home=$vm/data/home"
+}
 $out += '#PORTABLE-END'
 Set-Content $props $out -Encoding ASCII
 '@

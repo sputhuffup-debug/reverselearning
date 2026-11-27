@@ -98,8 +98,22 @@ function Test-PortableBlock {
     Write-Result ($begin -eq 1) "$Label exactly one #PORTABLE block" "(found $begin)"
     Write-Result ($javaOverrides.Count -eq 1 -and $javaOverrides[0] -eq "JAVA_HOME_OVERRIDE=$r/jdk") `
         "$Label JAVA_HOME_OVERRIDE points at $r/jdk" "(found: $($javaOverrides -join '; '))"
-    Write-Result ($props -contains "VMARGS=-Dapplication.settingsdir=`"$r/data/ghidra-settings`"") "$Label settingsdir points into the kit"
-    Write-Result ($props -contains "VMARGS=-Duser.home=`"$r/data/home`"") "$Label user.home points into the kit"
+    # VMARGS can't contain spaces (see fix-ghidra-paths.ps1): expect the 8.3 short path, or no lines at all.
+    $vm = $r
+    if ($r -match ' ') {
+        $vm = $null
+        try { $vm = (New-Object -ComObject Scripting.FileSystemObject).GetFolder($Root).ShortPath -replace '\\', '/' } catch { $vm = $null }
+        if ($vm -match ' ') { $vm = $null }
+    }
+    $vmLines = @($props | Where-Object { $_ -match '^VMARGS=-D(application\.settingsdir|user\.home)=' })
+    if ($vm) {
+        Write-Result ($props -contains "VMARGS=-Dapplication.settingsdir=$vm/data/ghidra-settings") "$Label settingsdir points into the kit ($vm)"
+        Write-Result ($props -contains "VMARGS=-Duser.home=$vm/data/home") "$Label user.home points into the kit ($vm)"
+    } else {
+        Write-Host "  NOTE  $Label no 8.3 short name for a path with spaces; settings stay in %APPDATA%"
+        Write-Result ($vmLines.Count -eq 0) "$Label no space-containing VMARGS written" "(found: $($vmLines -join '; '))"
+    }
+    $script:SettingsInKit = [bool]$vm
 }
 
 function Invoke-LauncherFix {
@@ -245,8 +259,8 @@ if ($Headless) {
             Write-Host "::warning title=launch.properties settings::$($lp -join '%0A')"
         }
         $settingsUsed = @(Get-ChildItem -LiteralPath $settings -Recurse -Force -ErrorAction SilentlyContinue).Count -gt 0
-        Write-Result $settingsUsed 'Ghidra wrote its settings into data\ghidra-settings'
-        if ($appData -and -not $appDataBefore) {
+        if ($script:SettingsInKit) { Write-Result $settingsUsed 'Ghidra wrote its settings into data\ghidra-settings' }
+        if ($script:SettingsInKit -and $appData -and -not $appDataBefore) {
             Write-Result (-not (Test-Path -LiteralPath $appData)) 'Ghidra left %APPDATA%\ghidra alone'
         }
     }
