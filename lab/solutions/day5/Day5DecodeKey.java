@@ -9,7 +9,6 @@ import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Instruction;
 import ghidra.program.model.listing.InstructionIterator;
-import ghidra.program.model.lang.Register;
 import ghidra.program.model.scalar.Scalar;
 import ghidra.program.model.symbol.Reference;
 
@@ -43,9 +42,10 @@ public class Day5DecodeKey extends GhidraScript {
         InstructionIterator it = currentProgram.getListing().getInstructions(main.getBody(), true);
         while (it.hasNext() && decodeAddr == null) {
             Instruction ins = it.next();
-            long imm = numberMovedInto(ins, "EDX");          // e.g. MOV EDX,0xe
-            if (imm >= 0) {
-                lastEdx = imm;
+            // MOV EDX,0xe: getRegister(0) names the full register, RDX, even though the instruction says EDX.
+            if (ins.getMnemonicString().equals("MOV") && ins.getNumOperands() == 2 && ins.getRegister(0) != null
+                    && ins.getRegister(0).getName().equals("RDX") && ins.getScalar(1) != null) {
+                lastEdx = ins.getScalar(1).getValue();
             }
             if (!ins.getFlowType().isCall()) {
                 continue;
@@ -75,7 +75,8 @@ public class Day5DecodeKey extends GhidraScript {
         while (dit.hasNext()) {
             Instruction ins = dit.next();
             for (Reference r : ins.getReferencesFrom()) {
-                if (r.getReferenceType().isData()) {
+                // At -O0 decode also stores its arguments on the stack; those are data references too.
+                if (r.getReferenceType().isData() && r.getToAddress().isMemoryAddress() && array == null) {
                     array = r.getToAddress();                // LEA RDX,[secret]
                 }
             }
@@ -101,25 +102,4 @@ public class Day5DecodeKey extends GhidraScript {
         println("Key: " + sb);
     }
 
-    private boolean reported = false;   // TEMPORARY: print the operand details once, for CI
-
-    // The number in "MOV <reg>,<number>", or -1 if ins is something else.
-    private long numberMovedInto(Instruction ins, String reg) {
-        if (!ins.getMnemonicString().equals("MOV") || ins.getNumOperands() != 2) {
-            return -1;
-        }
-        Object[] dst = ins.getOpObjects(0);                  // what operand 0 is made of
-        Object[] src = ins.getOpObjects(1);                  // what operand 1 is made of
-        boolean isReg = dst.length == 1 && dst[0] instanceof Register
-                && ((Register) dst[0]).getName().equalsIgnoreCase(reg);
-        if (isReg && !reported) {
-            reported = true;
-            println("TEMP " + ins + ": getRegister(0)=" + ins.getRegister(0) + " getScalar(1)=" + ins.getScalar(1)
-                    + " src=" + (src.length > 0 ? src[0].getClass().getSimpleName() + " " + src[0] : "none"));
-        }
-        if (isReg && src.length == 1 && src[0] instanceof Scalar) {
-            return ((Scalar) src[0]).getValue();
-        }
-        return -1;
-    }
 }

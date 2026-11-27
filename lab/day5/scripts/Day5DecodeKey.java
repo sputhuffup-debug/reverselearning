@@ -26,11 +26,13 @@ public class Day5DecodeKey extends GhidraScript {
         //         decode. Also keep the number moved into EDX just before the decode call: the length.
         //         Look up currentProgram.getListing().getInstructions(AddressSetView, boolean),
         //         Instruction.getFlows(), getFunctionAt(Address), Instruction.getMnemonicString(),
-        //         Instruction.getRegister(int) and Instruction.getScalar(int).
+        //         Instruction.getRegister(int) and Instruction.getScalar(int). Print getRegister(0) for a
+        //         MOV EDX once: Ghidra names the full register.
 
         // TODO 4: Walk decode's instructions. The array is the target of a data reference; the key is the
         //         number in the XOR instruction. Look up Instruction.getReferencesFrom(),
         //         Reference.getReferenceType().isData(), Reference.getToAddress() and Scalar.getValue().
+        //         Stack slots count as data references too; Address.isMemoryAddress() tells them apart.
 
         // TODO 5: Read the bytes, XOR each one with the key, and print the key you get.
         //         Look up getBytes(Address, int). Java bytes are signed, so mask with & 0xff.
