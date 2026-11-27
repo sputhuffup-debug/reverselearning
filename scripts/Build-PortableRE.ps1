@@ -203,7 +203,9 @@ try {
     # so the folder stays portable even if its drive letter or path changes.
     Write-IfMissing (Join-Path $Destination 'data\fix-ghidra-paths.ps1') @'
 param([string]$Root)
-$Root  = $Root.TrimEnd('\')
+$ErrorActionPreference = 'Stop'
+# Tolerate a stray quote or trailing backslash from the caller's command line.
+$Root  = $Root.Trim().Trim('"').TrimEnd('\')
 $props = Join-Path $Root 'ghidra\support\launch.properties'
 $r     = $Root -replace '\\', '/'
 $out = @(); $skip = $false
@@ -214,8 +216,9 @@ foreach ($l in Get-Content $props) {
 }
 $out += '#PORTABLE-BEGIN'
 $out += "JAVA_HOME_OVERRIDE=$r/jdk"
-$out += "VMARGS=-Dapplication.settingsdir=$r/data/ghidra-settings"
-$out += "VMARGS=-Duser.home=$r/data/home"
+# Ghidra's launch.bat passes VMARGS to java unquoted, so quote the values to survive spaces in the path.
+$out += "VMARGS=-Dapplication.settingsdir=`"$r/data/ghidra-settings`""
+$out += "VMARGS=-Duser.home=`"$r/data/home`""
 $out += '#PORTABLE-END'
 Set-Content $props $out -Encoding ASCII
 '@
@@ -224,7 +227,13 @@ Set-Content $props $out -Encoding ASCII
 @echo off
 setlocal
 set "ROOT=%~dp0"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%data\fix-ghidra-paths.ps1" -Root "%ROOT%"
+rem Strip the trailing backslash: "C:\kit\" would reach PowerShell as C:\kit" (the \" escapes the quote).
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%data\fix-ghidra-paths.ps1" -Root "%ROOT:~0,-1%"
+if errorlevel 1 (
+    echo Could not update Ghidra's paths for this location. See the error above.
+    pause
+    exit /b 1
+)
 set "JAVA_HOME=%ROOT%jdk"
 set "PATH=%JAVA_HOME%\bin;%PATH%"
 start "" "%ROOT%ghidra\ghidraRun.bat"

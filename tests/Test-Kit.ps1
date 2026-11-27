@@ -95,8 +95,8 @@ function Test-PortableBlock {
     Write-Result ($begin -eq 1) "$Label exactly one #PORTABLE block" "(found $begin)"
     Write-Result ($javaOverrides.Count -eq 1 -and $javaOverrides[0] -eq "JAVA_HOME_OVERRIDE=$r/jdk") `
         "$Label JAVA_HOME_OVERRIDE points at $r/jdk" "(found: $($javaOverrides -join '; '))"
-    Write-Result ($props -contains "VMARGS=-Dapplication.settingsdir=$r/data/ghidra-settings") "$Label settingsdir points into the kit"
-    Write-Result ($props -contains "VMARGS=-Duser.home=$r/data/home") "$Label user.home points into the kit"
+    Write-Result ($props -contains "VMARGS=-Dapplication.settingsdir=`"$r/data/ghidra-settings`"") "$Label settingsdir points into the kit"
+    Write-Result ($props -contains "VMARGS=-Duser.home=`"$r/data/home`"") "$Label user.home points into the kit"
 }
 
 function Invoke-LauncherFix {
@@ -104,6 +104,11 @@ function Invoke-LauncherFix {
     # launcher sets it (%~dp0, which always ends in a backslash), without starting Ghidra itself.
     $line = Get-Content (Join-Path $Kit 'Ghidra.cmd') | Where-Object { $_ -match 'fix-ghidra-paths' } | Select-Object -First 1
     if (-not $line) { Write-Result $false 'Ghidra.cmd calls fix-ghidra-paths.ps1'; return }
+    # Start from stale paths, so the check proves the launcher really rewrites them.
+    $propsFile = Join-Path $Kit 'ghidra\support\launch.properties'
+    $r = $Kit -replace '\\', '/'
+    $stale = (Get-Content -LiteralPath $propsFile) | ForEach-Object { $_.Replace("$r/", 'X:/old-location/') }
+    Set-Content -LiteralPath $propsFile -Value $stale -Encoding ASCII
     $tmp = Join-Path ([IO.Path]::GetTempPath()) ('launcher-' + [IO.Path]::GetRandomFileName() + '.cmd')
     Set-Content -LiteralPath $tmp -Encoding ASCII -Value @('@echo off', "set `"ROOT=$Kit\`"", $line, 'exit /b %errorlevel%')
     $p = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "`"$tmp`"" -NoNewWindow -Wait -PassThru
