@@ -228,7 +228,20 @@ if ($Headless) {
         $text = Get-Content -LiteralPath $log -Raw
         if ($null -eq $text) { $text = '' }
         $tail = (($text -split "`n") | Select-Object -Last 15) -join "`n"
-        Write-Result ($p.ExitCode -eq 0 -and $text -match 'Import succeeded') 'analyzeHeadless imports ex1' "(exit $($p.ExitCode))`n$tail"
+        $imported = $p.ExitCode -eq 0 -and $text -match 'Import succeeded'
+        Write-Result $imported 'analyzeHeadless imports ex1' "(exit $($p.ExitCode))`n$tail"
+        if (-not $imported) {
+            # Ask Ghidra's launcher helper directly what it makes of the kit's JDK.
+            $ls   = Join-Path $Kit 'ghidra\support\LaunchSupport.jar'
+            $java = Join-Path $Kit 'jdk\bin\java.exe'
+            foreach ($lsArgs in @(@('-jdk_home_check', (Join-Path $Kit 'jdk')), @('-jdk_home'))) {
+                $r = Invoke-Program $java @() -Arguments (@('-cp', "`"$ls`"", 'LaunchSupport', "`"$(Join-Path $Kit 'ghidra')`"") + `
+                        ($lsArgs | ForEach-Object { if ($_ -match ' ') { "`"$_`"" } else { $_ } }))
+                Write-Host "::warning title=LaunchSupport $($lsArgs[0])::exit $($r.Code): $(($r.Output -replace "`r", '') -replace "`n", '%0A')"
+            }
+            $lp = Get-Content (Join-Path $Kit 'ghidra\support\launch.properties') | Where-Object { $_ -notmatch '^\s*(#|$)' }
+            Write-Host "::warning title=launch.properties settings::$($lp -join '%0A')"
+        }
         $settingsUsed = @(Get-ChildItem -LiteralPath $settings -Recurse -Force -ErrorAction SilentlyContinue).Count -gt 0
         Write-Result $settingsUsed 'Ghidra wrote its settings into data\ghidra-settings'
         if ($appData -and -not $appDataBefore) {

@@ -73,12 +73,14 @@ jobs:
         run: .\scripts\Build-PortableRE.ps1 -Destination $env:KIT
 
       - name: Smoke-test the kit
-        run: .\tests\Test-Kit.ps1 -Kit $env:KIT
+        run: .\tests\Test-Kit.ps1 -Kit $env:KIT -Headless
 
       - name: Re-run and top-up keep user files
+        if: ${{ !cancelled() }}
         run: .\tests\Test-Rerun.ps1 -Kit $env:KIT
 
       - name: Move the kit (path with a space) and test again, with Ghidra headless
+        if: ${{ !cancelled() }}
         run: |
           New-Item -ItemType Directory (Split-Path $env:MOVED) | Out-Null
           Move-Item $env:KIT $env:MOVED
