@@ -60,7 +60,8 @@ public class Day5DecodeKey extends GhidraScript {
             }
         }
         if (decodeAddr == null || length <= 0) {
-            println("Could not find the call to decode before strcmp.");
+            println("Could not find the call to decode before strcmp (decode "
+                    + decodeAddr + ", length " + length + ").");
             return;
         }
         Function decode = getFunctionAt(decodeAddr);

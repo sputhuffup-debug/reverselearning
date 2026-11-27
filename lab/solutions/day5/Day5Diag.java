@@ -14,17 +14,24 @@ public class Day5Diag extends GhidraScript {
         Address text = findBytes(currentProgram.getMinAddress(), "Bad license key");
         Function main = getFunctionContaining(getReferencesTo(text)[0].getFromAddress());
         InstructionIterator it = currentProgram.getListing().getInstructions(main.getBody(), true);
+        boolean on = false;
         while (it.hasNext()) {
             Instruction ins = it.next();
-            StringBuilder sb = new StringBuilder("D " + ins.getAddress() + " " + ins + " flow=" + ins.getFlowType());
+            if (!on) {
+                for (Address f : ins.getFlows()) {
+                    Function c = getFunctionAt(f);
+                    if (c != null && c.getName().equals("strcspn")) { on = true; }
+                }
+                continue;
+            }
+            StringBuilder sb = new StringBuilder("D " + ins.getAddress().toString().substring(7) + " " + ins);
             for (Address f : ins.getFlows()) {
                 Function c = getFunctionAt(f);
-                sb.append(" ->" + f + (c == null ? "" : "(" + c.getName() + ")"));
+                sb.append(" ->" + (c == null ? f.toString() : c.getName()));
             }
             for (Reference r : ins.getReferencesFrom()) {
                 Data d = getDataAt(r.getToAddress());
-                sb.append(" ref:" + r.getReferenceType() + "@" + r.getToAddress()
-                        + (d == null ? " nodata" : " data=" + d.getDataType().getName()));
+                sb.append(" r:" + r.getReferenceType().toString().substring(0, 3));
             }
             println(sb.toString());
         }
