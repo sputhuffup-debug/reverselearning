@@ -20,12 +20,14 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | Step over | Runs one instruction and doesn't follow calls inside it. | F8 | Day 1 |
 | Step into | Follows calls. | F7 | Day 1 |
 | Run until the function returns | | Ctrl+F9 | Day 1 |
+| Return to the program's own code | Run to user code. Use it after stopping inside a DLL. | Alt+F9 | Day 2 |
 
 ## Breakpoints
 
 | Task | How | Shortcut | Day |
 | --- | --- | --- | --- |
 | Set or clear a breakpoint | Select the instruction and press F2. | F2 | Day 1 |
+| Break on a DLL function | Symbols tab → select the DLL (for example `msvcrt.dll`) → find the function, such as `strcmp`, and press F2. | F2 | Day 2 |
 
 ## Reading state
 
@@ -38,6 +40,9 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | Read a call's arguments | Pause on the `call`. The first four arguments are in RCX, RDX, R8 and R9. | | Day 1 |
 | Read a return value | Step over the call and read RAX. | F8 | Day 1 |
 | Find the image base | Open the Symbols tab and note the program's base address. | | Day 1 |
+| Read arguments 5 and up | Pause on the `call`. Argument 5 is at `[rsp+0x20]` and argument 6 at `[rsp+0x28]`. Inside the callee they are 8 bytes higher. | | Day 2 |
+| See how you got here | Call Stack tab. It lists the return addresses on the stack; a tail call (`jmp`) leaves no line. | | Day 2 |
+| Go to a caller | Double-click a line in the Call Stack tab. | | Day 2 |
 
 ## Finding code
 
@@ -54,6 +59,7 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | --- | --- | --- | --- |
 | Add a label | | `:` | Day 1 |
 | Add a comment | | `;` | Day 1 |
+| Name functions in the call stack | Go to each function's start and press `:`. The Call Stack tab shows the labels. | `:` | Day 2 |
 
 ## Changing and patching
 

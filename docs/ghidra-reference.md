@@ -11,6 +11,9 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Create a project | Start `Ghidra.cmd`, then File → New Project → Non-Shared. Put it in the kit's `projects` folder. | | Day 1 |
 | Import a program | Drag the `.exe` into the project window and accept the detected format (Portable Executable, x86:LE:64). | | Day 1 |
 | Analyze a program | Double-click the program to open the CodeBrowser and click Yes to analyze with the defaults. Wait for the progress bar at the bottom right. | | Day 1 |
+| Change analyzers or re-run analysis | Analysis → Auto Analyze. Tick or untick analyzers in the list, then click Analyze. | | Day 2 |
+| Run one analyzer once | Analysis → One Shot, then pick the analyzer. | | Day 2 |
+| Let the decompiler work out parameters | Tick **Decompiler Parameter ID** in the analyzer list and analyze again. | | Day 2 |
 
 ## Navigating
 
@@ -23,6 +26,7 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Go to an address | | `G` | Day 1 |
 | See an array's bytes | Double-click the array in the decompiler. | | Day 1 |
 | See a function as a graph | Window → Function Graph. Loops show up as boxes and arrows. | | Day 1 |
+| Open a second program in the same CodeBrowser | File → Open. Each program gets its own tab above the Listing. | | Day 2 |
 
 ## Finding code
 
@@ -42,6 +46,9 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Change a type | Select it and press Ctrl+L, for example to make a parameter `char *`. | Ctrl+L | Day 1 |
 | Add a comment | | `;` | Day 1 |
 | Show a number in hex or decimal | Right-click the number and pick the format. | | Day 1 |
+| Set a function's prototype | Right-click the function name in the Decompiler → Edit Function Signature, and type the prototype as C. | | Day 2 |
+| Set a function's calling convention | Edit Function Signature → Calling Convention. 64-bit Windows code uses `__fastcall`. | | Day 2 |
+| Show a number as characters | Right-click the number in the Listing → Convert. | | Day 2 |
 
 ## Patching and export
 
@@ -57,3 +64,14 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | See the memory layout | Window → Memory Map. | | Day 1 |
 | Match x64dbg's addresses | Window → Memory Map, click the house icon (Set Image Base) and enter the base from x64dbg's Symbols tab. | | Day 1 |
 | Convert an address without rebasing | Offset = Ghidra address − `0x140000000`. The x64dbg address = base + offset. | | Day 1 |
+
+## Comparing programs
+
+| Task | How | Shortcut | Day |
+| --- | --- | --- | --- |
+| Open Version Tracking | In the project window, Tools → Run Tool → Version Tracking. | | Day 2 |
+| Compare two builds | In Version Tracking, File → New Session. Pick the source (for example the `-O0` build) and the destination (the `-O2` build). | | Day 2 |
+| Match identical functions | Add the **Exact Function Bytes Match** correlator to the session. | | Day 2 |
+| Match identical data, such as strings | Add the **Exact Data Match** correlator, then select its matches and accept them. | | Day 2 |
+| Match functions that use the same data | Add the **Data Reference Match** correlator. It only uses matches you have accepted. | | Day 2 |
+| Copy a name to the other build | Open the match and apply the function name from its markup items. | | Day 2 |
