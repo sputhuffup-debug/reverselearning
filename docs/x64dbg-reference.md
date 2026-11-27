@@ -46,6 +46,17 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | See how you got here | Call Stack tab. It lists the return addresses on the stack; a tail call (`jmp`) leaves no line. | | Day 2 |
 | Go to a caller | Double-click a line in the Call Stack tab. | | Day 2 |
 | See a function as a graph | Press `G` in the disassembly. Press it again to go back to the list. | `G` | Day 3 |
+| Read memory in an expression | `[rax]` reads 8 bytes; `dword:[rax+0x14]`, `word:[rax+4]` and `byte:[rax+0x10]` read 4, 2 and 1. Brackets nest: `[[rcx+8]+8]`. | | Day 4 |
+| Follow a struct in the dump | Click in the dump, press Ctrl+G and enter the struct's address or an expression such as `rax`. Read each field at its offset. | Ctrl+G | Day 4 |
+| Follow a pointer field | In the dump, press Ctrl+G and enter the field as an expression, such as `[rcx+8]` for a list node's `next`. Repeat until it is 0. | Ctrl+G | Day 4 |
+| Match the dump to a field's size | Right-click the dump and switch between hex bytes, 16-bit or 32-bit integers, and addresses. | | Day 4 |
+
+## Watching values
+
+| Task | How | Shortcut | Day |
+| --- | --- | --- | --- |
+| Watch a value | Open the Watch 1 tab next to the dump tabs, right-click → Add, and enter an expression. It updates every time the program pauses. | | Day 4 |
+| Watch a struct field through a local | Add an expression that reads the local's stack slot, then the field: `word:[[rbp-0x10]+4]`. Use your own slot and offset. | | Day 4 |
 
 ## Finding code
 
