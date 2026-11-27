@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    # Weekly, to catch upstream release/asset-name changes (Ghidra, Temurin, x64dbg, w64devkit).
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    # Windows PowerShell 5.1, the version the build script targets (not pwsh 7).
+    shell: powershell
+
+jobs:
+  lint:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PSScriptAnalyzer
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          $results = @(Invoke-ScriptAnalyzer -Path scripts, tests -Recurse -Severity Error, Warning `
+                         -ExcludeRule PSAvoidUsingWriteHost)
+          foreach ($r in $results) {
+            $level = if ($r.Severity -eq 'Error') { 'error' } else { 'warning' }
+            Write-Host "::$level file=$($r.ScriptPath | Resolve-Path -Relative),line=$($r.Line),title=$($r.RuleName)::$($r.Message)"
+          }
+          $results | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+          if ($results.Count -gt 0) { exit 1 }
+
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      # Raises the GitHub API rate limit for release lookups; the script uses it for API calls only.
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set paths
+        run: |
+          "KIT=$env:RUNNER_TEMP\RE-Portable"              | Out-File $env:GITHUB_ENV -Append -Encoding ascii
+          "MOVED=$env:RUNNER_TEMP\Moved Kit\RE-Portable"  | Out-File $env:GITHUB_ENV -Append -Encoding ascii
+
+      - name: Build the kit
+        run: .\scripts\Build-PortableRE.ps1 -Destination $env:KIT
+
+      - name: Smoke-test the kit
+        run: .\tests\Test-Kit.ps1 -Kit $env:KIT
+
+      - name: Re-run and top-up keep user files
+        run: .\tests\Test-Rerun.ps1 -Kit $env:KIT
+
+      - name: Move the kit (path with a space) and test again, with Ghidra headless
+        run: |
+          New-Item -ItemType Directory (Split-Path $env:MOVED) | Out-Null
+          Move-Item $env:KIT $env:MOVED
+          .\tests\Test-Kit.ps1 -Kit $env:MOVED -Headless
+
+      - name: Show versions
+        if: always()
+        run: |
+          foreach ($k in @($env:KIT, $env:MOVED)) {
+            if (-not (Test-Path $k)) { continue }
+            Get-Content "$k\ghidra\Ghidra\application.properties" | Select-String 'application.version|application.java.min'
+            Get-Content "$k\jdk\release" | Select-String '^JAVA_VERSION='
+            & "$k\w64devkit\bin\gcc.exe" --version | Select-Object -First 1
+          }

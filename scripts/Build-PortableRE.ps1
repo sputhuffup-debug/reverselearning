@@ -30,6 +30,8 @@ $ProgressPreference    = 'SilentlyContinue'   # makes Invoke-WebRequest much fas
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $Headers = @{ 'User-Agent' = 'Build-PortableRE'; 'Accept' = 'application/vnd.github+json' }
+# Optional: a token raises the GitHub API rate limit (60/hour unauthenticated). Used for API calls only, never downloads.
+if ($env:GITHUB_TOKEN) { $Headers['Authorization'] = "Bearer $env:GITHUB_TOKEN" }
 
 # --- helpers -----------------------------------------------------------------
 function Get-LatestAsset {
