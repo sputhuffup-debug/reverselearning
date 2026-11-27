@@ -242,13 +242,35 @@ start "" "%ROOT%ghidra\ghidraRun.bat"
     Write-IfMissing (Join-Path $Destination 'x64dbg.cmd') '@start "" "%~dp0x64dbg\x64\x64dbg.exe" %*'
     Write-IfMissing (Join-Path $Destination 'x32dbg.cmd') '@start "" "%~dp0x64dbg\x32\x32dbg.exe" %*'
 
-    # Opens a GCC shell in the lab folder. w64devkit.exe gives a Unix-style shell (v2+);
-    # if it's missing (older versions), fall back to a cmd window with GCC on PATH.
+    # Remember the lab folder of the repo this script is in, so Devkit.cmd can open the shell there.
+    # It's a plain setting (edit it freely), not a path baked into a launcher; if the folder is
+    # gone (kit moved to another PC), Devkit.cmd falls back to the kit's own lab\.
+    $repoLab = Join-Path $PSScriptRoot '..\lab'
+    if (Test-Path -LiteralPath (Join-Path $repoLab 'Makefile')) {
+        $repoLab = (Resolve-Path -LiteralPath $repoLab).Path
+        if ($repoLab -match '[^\x20-\x7E]') {
+            Write-Host "  Not saving lab path (non-ASCII characters): $repoLab; pass it to Devkit.cmd instead."
+        } else {
+            Write-IfMissing (Join-Path $Destination 'data\lab-path.txt') $repoLab
+        }
+    }
+
+    # Opens a GCC shell in the lab folder: the one given as an argument, else data\lab-path.txt,
+    # else the kit's lab\. w64devkit.exe gives a Unix-style shell (v2+); if it's missing
+    # (older versions), fall back to a cmd window with GCC on PATH.
     Write-IfMissing (Join-Path $Destination 'Devkit.cmd') @'
 @echo off
 setlocal
 set "ROOT=%~dp0"
-cd /d "%ROOT%lab"
+set "LAB=%~1"
+if not defined LAB if exist "%ROOT%data\lab-path.txt" set /p LAB=<"%ROOT%data\lab-path.txt"
+if not defined LAB set "LAB=%ROOT%lab"
+if not exist "%LAB%\" (
+    echo Lab folder not found: %LAB%
+    echo Using %ROOT%lab instead. Edit data\lab-path.txt or run: Devkit.cmd D:\path\to\lab
+    set "LAB=%ROOT%lab"
+)
+cd /d "%LAB%"
 if exist "%ROOT%w64devkit\w64devkit.exe" (
     start "" "%ROOT%w64devkit\w64devkit.exe"
 ) else (
@@ -268,4 +290,4 @@ Write-Host ""
 Write-Host "Done: $Destination" -ForegroundColor Green
 Write-Host "  Ghidra.cmd   - Ghidra with bundled JDK; settings in data\, save projects in projects\"
 Write-Host "  x64dbg.cmd   - 64-bit debugger (x32dbg.cmd for 32-bit)"
-Write-Host "  Devkit.cmd   - GCC shell opened in lab\ (compile the practice programs here)"
+Write-Host "  Devkit.cmd   - GCC shell opened in the repo's lab folder (see data\lab-path.txt); run 'make' there"
