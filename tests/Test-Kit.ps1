@@ -125,16 +125,25 @@ Test-PortableBlock $Kit 're-applied:'
 
 # --- compile the lab -----------------------------------------------------------
 Write-Host "Compile lab (output in $OutDir)"
-$gcc = Join-Path $Kit 'w64devkit\bin\gcc.exe'
+# Uses lab\Makefile with the kit's make, the same way a student builds from Devkit.cmd.
+$make = Join-Path $Kit 'w64devkit\bin\make.exe'
 $env:PATH = (Join-Path $Kit 'w64devkit\bin') + ';' + $env:PATH
 $exes = @{}
-foreach ($src in Get-ChildItem -LiteralPath $LabSource -Filter '*.c') {
-    $exe = Join-Path $OutDir ($src.BaseName + '.exe')
-    $p = Start-Process -FilePath $gcc -ArgumentList '-O0', '-s', '-Wall', "`"$($src.FullName)`"", '-o', "`"$exe`"" `
-                       -NoNewWindow -Wait -PassThru
-    $ok = ($p.ExitCode -eq 0) -and (Test-Path -LiteralPath $exe)
-    Write-Result $ok "gcc $($src.Name)" "(exit $($p.ExitCode))"
-    if ($ok) { $exes[$src.BaseName] = $exe }
+if ($OutDir -match ' ') {
+    Write-Result $false 'make lab' "(OUT path has a space, which make can't handle: $OutDir; pass -OutDir)"
+} else {
+    $outArg = 'OUT=' + ($OutDir.TrimEnd('\') -replace '\\', '/')
+    $p = Start-Process -FilePath $make -ArgumentList '-C', "`"$LabSource`"", $outArg -NoNewWindow -Wait -PassThru
+    Write-Result ($p.ExitCode -eq 0) 'make lab' "(exit $($p.ExitCode))"
+    foreach ($src in Get-ChildItem -LiteralPath $LabSource -Filter '*.c') {
+        $exe = Join-Path $OutDir ($src.BaseName + '.exe')
+        $ok  = Test-Path -LiteralPath $exe
+        Write-Result $ok "built $($src.BaseName).exe"
+        if ($ok) { $exes[$src.BaseName] = $exe }
+    }
+    # Nothing should be written next to the sources.
+    $stray = @(Get-ChildItem -LiteralPath $LabSource -File | Where-Object { $_.Name -notmatch '\.c$|^Makefile$' })
+    Write-Result ($stray.Count -eq 0) 'make left lab\ clean' "(found: $($stray.Name -join ', '))"
 }
 
 # --- run the practice programs -------------------------------------------------
@@ -175,7 +184,13 @@ if ($Headless) {
         $appData  = if ($env:APPDATA) { Join-Path $env:APPDATA 'ghidra' } else { '' }
         $appDataBefore = $appData -and (Test-Path -LiteralPath $appData)
         $log = Join-Path $OutDir 'headless.log'
+        $nul = Join-Path $OutDir 'empty.in'
+        [IO.File]::WriteAllBytes($nul, [byte[]]@())   # empty stdin, so "Press any key" can't block
+        # Same environment Ghidra.cmd sets up: the kit's JDK, not whatever Java the machine has.
+        $env:JAVA_HOME = Join-Path $Kit 'jdk'
+        $env:PATH      = (Join-Path $Kit 'jdk\bin') + ';' + $env:PATH
         $p = Start-Process -FilePath 'cmd.exe' -NoNewWindow -Wait -PassThru -RedirectStandardOutput $log `
+                -RedirectStandardInput $nul `
                 -ArgumentList '/c', "`"`"$Kit\ghidra\support\analyzeHeadless.bat`" `"$projDir`" ci -import `"$target`" -deleteProject`""
         $text = Get-Content -LiteralPath $log -Raw
         if ($null -eq $text) { $text = '' }

@@ -33,13 +33,19 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-PortableRE.ps1 -Destina
 
 You can run the script again safely: tools that are already installed are skipped, and your settings and plugins are kept.
 
-Copy `lab\*.c` into `RE-Portable\lab\`, open `RE-Portable\Devkit.cmd`, and compile, for example:
+## Building the practice programs
+
+Open `RE-Portable\Devkit.cmd` and run `make` on this repo's `lab` folder. The sources stay where they are, and the executables go to `lab/bin/`:
 
 ```sh
-gcc -O0 -s ex1_password.c -o ex1.exe
+make -C E:/src/portable-re-lab/lab          # -> lab/bin/ex1_password.exe, ex2_serial.exe, ex3_crackme.exe
+make -C E:/src/portable-re-lab/lab OUT=E:/RE-Portable/lab   # or put them somewhere else
+make -C E:/src/portable-re-lab/lab clean
 ```
 
-Then analyze the result with `Ghidra.cmd` and `x64dbg.cmd`.
+Use forward slashes, and keep `OUT` free of spaces (make can't handle them). `make` rebuilds only what changed.
+
+Then analyze the programs with `Ghidra.cmd` and `x64dbg.cmd`.
 
 ## License
 
