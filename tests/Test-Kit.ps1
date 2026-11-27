@@ -234,11 +234,13 @@ if ($Headless) {
             # Ask Ghidra's launcher helper directly what it makes of the kit's JDK.
             $ls   = Join-Path $Kit 'ghidra\support\LaunchSupport.jar'
             $java = Join-Path $Kit 'jdk\bin\java.exe'
-            foreach ($lsArgs in @(@('-jdk_home_check', (Join-Path $Kit 'jdk')), @('-jdk_home'))) {
+            foreach ($lsArgs in @(@('-jdk_home'), @('-jdk_home', '-save'), @('-vmargs'))) {
                 $r = Invoke-Program $java @() -Arguments (@('-cp', "`"$ls`"", 'LaunchSupport', "`"$(Join-Path $Kit 'ghidra')`"") + `
                         ($lsArgs | ForEach-Object { if ($_ -match ' ') { "`"$_`"" } else { $_ } }))
                 Write-Host "::warning title=LaunchSupport $($lsArgs[0])::exit $($r.Code): $(($r.Output -replace "`r", '') -replace "`n", '%0A')"
             }
+            $lb = Get-Content (Join-Path $Kit 'ghidra\support\launch.bat') | Select-String -Pattern 'LaunchSupport|JAVA_HOME|JAVA_CMD' | ForEach-Object { $_.Line.Trim() }
+            Write-Host "::warning title=launch.bat lines::$(($lb -join '%0A') -replace '::', ': :')"
             $lp = Get-Content (Join-Path $Kit 'ghidra\support\launch.properties') | Where-Object { $_ -notmatch '^\s*(#|$)' }
             Write-Host "::warning title=launch.properties settings::$($lp -join '%0A')"
         }
