@@ -28,6 +28,8 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | --- | --- | --- | --- |
 | Set or clear a breakpoint | Select the instruction and press F2. | F2 | Day 1 |
 | Break on a DLL function | Symbols tab → select the DLL (for example `msvcrt.dll`) → find the function, such as `strcmp`, and press F2. | F2 | Day 2 |
+| Stop only when a condition is true | Breakpoints tab, right-click the breakpoint → Edit, and fill in Break Condition, such as `eax == 7`. | | Day 3 |
+| Count how often a breakpoint is hit | Read the hit count in the Breakpoints tab. A condition of `0` counts hits without stopping. | | Day 3 |
 
 ## Reading state
 
@@ -43,6 +45,7 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | Read arguments 5 and up | Pause on the `call`. Argument 5 is at `[rsp+0x20]` and argument 6 at `[rsp+0x28]`. Inside the callee they are 8 bytes higher. | | Day 2 |
 | See how you got here | Call Stack tab. It lists the return addresses on the stack; a tail call (`jmp`) leaves no line. | | Day 2 |
 | Go to a caller | Double-click a line in the Call Stack tab. | | Day 2 |
+| See a function as a graph | Press `G` in the disassembly. Press it again to go back to the list. | `G` | Day 3 |
 
 ## Finding code
 
@@ -70,3 +73,13 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | Rewrite an instruction | Select it and press Space. To remove a jump, enter `nop` with "Fill with NOPs" ticked, or reverse the jump. | Space | Day 1 |
 | Save a patched copy | File → Patch file → Patch File. Save under a new name and never overwrite the original. | Ctrl+P | Day 1 |
 | Hide the debugger from `IsDebuggerPresent` | Debug → Advanced → Hide debugger (PEB). | | Day 1 |
+
+## Command line and expressions
+
+| Task | How | Shortcut | Day |
+| --- | --- | --- | --- |
+| Run a command | Type it in the Command box at the bottom of the window and press Enter. Output goes to the Log tab. | | Day 3 |
+| Work out an expression | Type it in the Command box, such as `rsp+0x20`. Numbers are hex. | | Day 3 |
+| Read memory in an expression | `[address]` reads 8 bytes; `byte:[address]` reads one. | | Day 3 |
+| Set a breakpoint from the command line | `bp address`. `bpcnd address, condition` gives it a condition. | | Day 3 |
+| Show an address in the dump | `dump address`, such as `dump rbp-0x11`. | | Day 3 |
