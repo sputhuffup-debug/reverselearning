@@ -4,7 +4,7 @@ The course runs 15 days. By the end, a student can take an unfamiliar Windows x6
 
 Each day follows Day 1's format: about 7 hours, roughly half hands-on, on practice programs built from source in `lab/` so the answers are known and checked by CI.
 
-Status: Days 1 to 4 are written ([day1-training.md](day1-training.md), [day2-training.md](day2-training.md), [day3-training.md](day3-training.md), [day4-training.md](day4-training.md)). Days 5 to 15 are planned below.
+Status: Days 1 to 5 are written ([day1-training.md](day1-training.md), [day2-training.md](day2-training.md), [day3-training.md](day3-training.md), [day4-training.md](day4-training.md), [day5-training.md](day5-training.md)). Days 6 to 15 are planned below.
 
 ## Where the course ends up
 
@@ -100,7 +100,7 @@ Each day ships as one milestone. A day is done when:
 | M0: Kit and CI (in progress) | Portable kit, Windows CI, Makefile, Day 1 guide | |
 | M1: Lab layout and references (done) | `lab/day1/` folders, a top-level Makefile that builds every day, CI testing each day; the Ghidra and x64dbg references started from Day 1's features | M0 |
 | M2 to M4: Days 2 to 4 (done) | Guides and programs for optimized code, control flow, data structures | M1 |
-| M5: Day 5 | First guided scripting day: skeletons, solutions, headless script runs in CI | M4 |
+| M5: Day 5 (done) | First guided scripting day: skeletons, solutions, headless script runs in CI | M4 |
 | M6 to M9: Days 6 to 9 | C++, PE, DLLs, x64dbg in depth (adds `g++` builds, already in w64devkit) | M5 |
 | M10: Day 10 | Second guided scripting day | M9 |
 | M11 to M14: Days 11 to 14 | Crypto, file formats, anti-analysis, obfuscation and packing; kit adds ScyllaHide (M13) and UPX (M14) | M10 |
