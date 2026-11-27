@@ -27,6 +27,8 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | See an array's bytes | Double-click the array in the decompiler. | | Day 1 |
 | See a function as a graph | Window → Function Graph. Loops show up as boxes and arrows. | | Day 1 |
 | Open a second program in the same CodeBrowser | File → Open. Each program gets its own tab above the Listing. | | Day 2 |
+| Bookmark an address | Press Ctrl+D and type a short note. Window → Bookmarks lists them; double-click one to go back. | Ctrl+D | Day 3 |
+| Read the Listing alone | Close the Decompiler window. Window → Decompiler opens it again. | | Day 3 |
 
 ## Finding code
 
@@ -37,6 +39,7 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | List every string | Window → Defined Strings. Type in its filter to narrow the list. | | Day 1 |
 | Find who uses a string or function | Right-click it → References → Show References to. | Ctrl+Shift+F | Day 1 |
 | Find `main` in a stripped program | Follow a reference from one of its strings, such as "Access granted!". Don't trace the startup code. | | Day 1 |
+| See what a function calls and who calls it | Window → Function Call Trees, with the cursor in the function. It shows Incoming Calls and Outgoing Calls. A recursive function shows up in its own outgoing calls. | | Day 3 |
 
 ## Annotating
 
@@ -49,6 +52,8 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Set a function's prototype | Right-click the function name in the Decompiler → Edit Function Signature, and type the prototype as C. | | Day 2 |
 | Set a function's calling convention | Edit Function Signature → Calling Convention. 64-bit Windows code uses `__fastcall`. | | Day 2 |
 | Show a number as characters | Right-click the number in the Listing → Convert. | | Day 2 |
+| Make data a pointer | Select the data in the Listing and press `P`. | `P` | Day 3 |
+| Make an array | Select the first element in the Listing, press `[` and enter the number of elements. | `[` | Day 3 |
 
 ## Patching and export
 
@@ -75,3 +80,19 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Match identical data, such as strings | Add the **Exact Data Match** correlator, then select its matches and accept them. | | Day 2 |
 | Match functions that use the same data | Add the **Data Reference Match** correlator. It only uses matches you have accepted. | | Day 2 |
 | Copy a name to the other build | Open the match and apply the function name from its markup items. | | Day 2 |
+
+## Control flow
+
+| Task | How | Shortcut | Day |
+| --- | --- | --- | --- |
+| Read a `switch` | Auto-analysis recovers jump tables. The indirect `jmp` is labeled `switchD` and each target `caseD_<n>`; the decompiler shows a `switch` statement. | | Day 3 |
+| Find a jump table's data | Double-click the table address in the instruction that loads it. The table is labeled `switchdataD`. | | Day 3 |
+| Spot a jump table that wasn't recovered | The decompiler shows a warning that it could not recover the jump table, and the cases are missing. Read the table from the Listing. | | Day 3 |
+| Tell loops apart in the Listing | `for` and `while` jump forward to the condition first; `do`-`while` runs the body first. Each loop ends with a backward jump. | | Day 3 |
+
+## Listing display
+
+| Task | How | Shortcut | Day |
+| --- | --- | --- | --- |
+| Show or hide Listing fields | Click the Edit the Listing fields button at the top of the Listing. Right-click a field in the header to turn it off, such as Bytes. | | Day 3 |
+| Change a field's settings | Edit → Tool Options → Listing Fields. For example, XREFs Field → Maximum Number of XREFs to Display. | | Day 3 |
