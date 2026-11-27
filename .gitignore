@@ -20,3 +20,6 @@ Thumbs.db
 
 # Practice program build output
 lab/bin/
+
+# Claude Code agent worktrees
+.claude/worktrees/
