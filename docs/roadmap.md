@@ -119,7 +119,7 @@ Work on the kit that supports the course, in priority order. Items marked done c
 | Check each day's Ghidra and x64dbg features against the versions the kit installs before writing that day | Each day | Not started |
 | Lab layout per day, with CI that runs each day's answer checks | M1 | Not started |
 | Show the repo's script folders in Ghidra's Script Manager (Script Directories), set up by `Ghidra.cmd` | M5 | Not started |
-| CI runs solution scripts with `analyzeHeadless -postScript` and checks their output | M5 | Not started |
+| CI runs solution scripts with `analyzeHeadless -postScript` and checks their output | M5 | Done (`scripts.psd1`) |
 | Portable Python in the kit (embeddable package, found through python.org, checksum verified, `Python.cmd` launcher), added with the first milestone whose exercises need it: Day 12's parser at the latest. Day 1's keygen exercise already says "Python is fine", so it may come sooner | M12 or earlier | Not started |
 | ScyllaHide plugin for x64dbg | M13 | Not started |
 | UPX in the kit | M14 | Not started |
