@@ -35,15 +35,15 @@ You can run the script again safely: tools that are already installed are skippe
 
 ## Building the practice programs
 
-Open `RE-Portable\Devkit.cmd` and run `make` on this repo's `lab` folder. The sources stay where they are, and the executables go to `lab/bin/`:
+Open `RE-Portable\Devkit.cmd`. Its shell starts in this repo's `lab` folder (the build saves that location in `RE-Portable\data\lab-path.txt`; edit it if you move the repo, or run `Devkit.cmd D:\path\to\lab`). Then:
 
 ```sh
-make -C E:/src/portable-re-lab/lab          # -> lab/bin/ex1_password.exe, ex2_serial.exe, ex3_crackme.exe
-make -C E:/src/portable-re-lab/lab OUT=E:/RE-Portable/lab   # or put them somewhere else
-make -C E:/src/portable-re-lab/lab clean
+make                              # -> bin/ex1.exe, bin/ex2.exe, bin/ex3.exe
+make OUT=E:/RE-Portable/lab       # or put them somewhere else
+make clean
 ```
 
-Use forward slashes, and keep `OUT` free of spaces (make can't handle them). `make` rebuilds only what changed.
+The sources stay where they are. `make` rebuilds only what changed. Keep `OUT` free of spaces (make can't handle them) and use forward slashes.
 
 Then analyze the programs with `Ghidra.cmd` and `x64dbg.cmd`.
 

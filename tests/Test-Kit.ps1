@@ -138,11 +138,11 @@ if ($OutDir -match ' ') {
     $outArg = 'OUT=' + ($OutDir.TrimEnd('\') -replace '\\', '/')
     $p = Start-Process -FilePath $make -ArgumentList '-C', "`"$LabSource`"", $outArg -NoNewWindow -Wait -PassThru
     Write-Result ($p.ExitCode -eq 0) 'make lab' "(exit $($p.ExitCode))"
-    foreach ($src in Get-ChildItem -LiteralPath $LabSource -Filter '*.c') {
-        $exe = Join-Path $OutDir ($src.BaseName + '.exe')
+    foreach ($name in 'ex1', 'ex2', 'ex3') {
+        $exe = Join-Path $OutDir "$name.exe"
         $ok  = Test-Path -LiteralPath $exe
-        Write-Result $ok "built $($src.BaseName).exe"
-        if ($ok) { $exes[$src.BaseName] = $exe }
+        Write-Result $ok "built $name.exe"
+        if ($ok) { $exes[$name] = $exe }
     }
     # Nothing should be written next to the sources.
     $stray = @(Get-ChildItem -LiteralPath $LabSource -File | Where-Object { $_.Name -notmatch '\.c$|^Makefile$' })
@@ -181,33 +181,33 @@ try {
 
 # --- run the practice programs -------------------------------------------------
 Write-Host "Practice programs"
-if ($exes['ex1_password']) {
-    Test-Program 'ex1 right password' $exes['ex1_password'] @('hunter2-ghidra') 0 'Access granted!'
-    Test-Program 'ex1 wrong password' $exes['ex1_password'] @('hunter2') 1 'Access denied.'
+if ($exes['ex1']) {
+    Test-Program 'ex1 right password' $exes['ex1'] @('hunter2-ghidra') 0 'Access granted!'
+    Test-Program 'ex1 wrong password' $exes['ex1'] @('hunter2') 1 'Access denied.'
 }
-if ($exes['ex2_serial']) {
-    Test-Program 'ex2 alice/cfb71247'  $exes['ex2_serial'] @('alice', 'cfb71247') 0 'Valid serial.'
-    Test-Program 'ex2 wrong serial'    $exes['ex2_serial'] @('alice', 'deadbeef') 1 'Invalid serial.'
-    Test-Program 'ex2 short name'      $exes['ex2_serial'] @('bob') 1 'at least 4 characters'
+if ($exes['ex2']) {
+    Test-Program 'ex2 alice/cfb71247'  $exes['ex2'] @('alice', 'cfb71247') 0 'Valid serial.'
+    Test-Program 'ex2 wrong serial'    $exes['ex2'] @('alice', 'deadbeef') 1 'Invalid serial.'
+    Test-Program 'ex2 short name'      $exes['ex2'] @('bob') 1 'at least 4 characters'
     # Cross-check the keygen against the program for another name, if Python is around.
     $py = Get-Command python -ErrorAction SilentlyContinue
     if ($py) {
         $keygen = Join-Path $LabSource 'solutions\keygen_ex2.py'
         $serial = (& $py.Source -I $keygen 'reverser').Trim()
-        Test-Program "ex2 keygen serial for 'reverser' ($serial)" $exes['ex2_serial'] @('reverser', $serial) 0 'Valid serial.'
+        Test-Program "ex2 keygen serial for 'reverser' ($serial)" $exes['ex2'] @('reverser', $serial) 0 'Valid serial.'
     } else {
         Write-Host "  SKIP  ex2 keygen cross-check (python not found)"
     }
 }
-if ($exes['ex3_crackme']) {
-    Test-Program 'ex3 right key' $exes['ex3_crackme'] @('R3v3rs1ng_D4y1') 0 'License OK.'
-    Test-Program 'ex3 wrong key' $exes['ex3_crackme'] @('R3v3rs1ng')      0 'Bad license key.'
+if ($exes['ex3']) {
+    Test-Program 'ex3 right key' $exes['ex3'] @('R3v3rs1ng_D4y1') 0 'License OK.'
+    Test-Program 'ex3 wrong key' $exes['ex3'] @('R3v3rs1ng')      0 'Bad license key.'
 }
 
 # --- Ghidra headless import (optional, takes a minute or two) -------------------
 if ($Headless) {
     Write-Host "Ghidra headless import"
-    $target = $exes['ex1_password']
+    $target = $exes['ex1']
     if (-not $target) {
         Write-Result $false 'Ghidra headless import' '(ex1 did not compile)'
     } else {
