@@ -1,0 +1,19 @@
+# Built kit and downloads
+RE-Portable/
+_download/
+
+# Compiled practice programs and patched copies
+*.exe
+*.obj
+*.o
+
+# Ghidra project files
+*.gpr
+*.rep/
+*.lock
+*.lock~
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
