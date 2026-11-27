@@ -42,7 +42,7 @@ The 15 days fall into three five-day blocks. Each block ends with a day that con
 | 10 | Ghidra scripting II (guided, Java) | Days 6 to 9 programs | Scripts that create data types, rename and comment, find constants; running a script headless with `analyzeHeadless` |
 | **Block 3** | **Protections and real-world skills** | | |
 | 11 | Algorithms and crypto | Keygen-mes using CRC32, a custom hash, RC4, and AES via Windows CNG | Constant hunting, recognizing crypto loops, writing keygens, a guided constant-finding script |
-| 12 | File formats and protocols | A program that saves and loads a custom file format; a client and server talking a custom protocol over localhost | Following data from input to parser, rebuilding a format as Ghidra types, writing a parser in Python or C |
+| 12 | File formats and protocols | A program that saves and loads a custom file format; a client and server talking a custom protocol over localhost | Following data from input to parser, rebuilding a format as Ghidra types, writing a parser in Python |
 | 13 | Anti-debugging and anti-analysis | Layered checks: PEB flags, `NtQueryInformationProcess`, timing, TLS-callback checks, exception tricks | Bypassing each check by hand, then with ScyllaHide; SEH and vectored exception handlers |
 | 14 | Obfuscation and packing | Encrypted strings, control-flow flattening, opaque predicates; a program packed with UPX and with a small custom packer | A guided string-decryption script, untangling flattened code, finding the OEP, dumping and fixing imports with Scylla |
 | 15 | Capstone | One unseen program combining Days 2 to 14, then beginner crackmes from crackmes.one in the VM | End-to-end analysis under time pressure, the write-up |
@@ -120,6 +120,7 @@ Work on the kit that supports the course, in priority order. Items marked done c
 | Lab layout per day, with CI that runs each day's answer checks | M1 | Not started |
 | Show the repo's script folders in Ghidra's Script Manager (Script Directories), set up by `Ghidra.cmd` | M5 | Not started |
 | CI runs solution scripts with `analyzeHeadless -postScript` and checks their output | M5 | Not started |
+| Portable Python in the kit (embeddable package, found through python.org, checksum verified, `Python.cmd` launcher), added with the first milestone whose exercises need it: Day 12's parser at the latest. Day 1's keygen exercise already says "Python is fine", so it may come sooner | M12 or earlier | Not started |
 | ScyllaHide plugin for x64dbg | M13 | Not started |
 | UPX in the kit | M14 | Not started |
 | Optional `-IncludeRetSync` (Ghidra and x64dbg stay in step) | Any | Not started |
@@ -130,8 +131,5 @@ Work on the kit that supports the course, in priority order. Items marked done c
 | --- | --- |
 | Course length | 15 days, about 7 hours each |
 | Ghidra scripting language | Java, taught step by step (see How scripting is taught) |
-
-## Open questions
-
-- Should Day 14's custom packer be in scope, or is UPX alone enough for a beginner course?
-- Day 12's parser: Python (quick to write; needs a Python install) or C (built with the kit's GCC)?
+| Packing on Day 14 | Both UPX and a small custom packer written for the course |
+| Helper language (keygens, decoders, parsers) | Python; the kit adds a portable Python when the first day that needs it is built |
