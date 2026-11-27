@@ -11,6 +11,7 @@ Portable Windows reverse-engineering kit (Ghidra + Temurin JDK + x64dbg + w64dev
 - Keep the kit relocatable: no absolute paths baked in at build time except inside the `#PORTABLE` block that
   `data\fix-ghidra-paths.ps1` rewrites on every launch.
 - Practice programs are educational and benign. Don't add real malware or techniques aimed at real software.
+- `docs/day1-training.md` is the only copy of the training guide; edit it directly (the Claude doc it was exported from is retired). Keep it in step with `lab/` and the kit: program names, `make`, `Devkit.cmd`.
 - `lab/solutions/` holds spoilers; the training docs link to it but don't inline answers outside the answer key.
 - Run PSScriptAnalyzer on script changes when available, and test on Windows before saying something works.
 
