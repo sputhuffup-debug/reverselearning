@@ -4,7 +4,7 @@ The course runs 15 days. By the end, a student can take an unfamiliar Windows x6
 
 Each day follows Day 1's format: about 7 hours, roughly half hands-on, on practice programs built from source in `lab/` so the answers are known and checked by CI.
 
-Status: Day 1 is written ([day1-training.md](day1-training.md)). Days 2 to 15 are planned below.
+Status: Days 1 and 2 are written ([day1-training.md](day1-training.md), [day2-training.md](day2-training.md)). Days 3 to 15 are planned below.
 
 ## Where the course ends up
 
