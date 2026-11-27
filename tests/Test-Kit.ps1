@@ -52,8 +52,11 @@ function Invoke-Program {
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError  = $true
     $p = [Diagnostics.Process]::Start($psi)
-    foreach ($l in $InputLines) { $p.StandardInput.WriteLine($l) }
-    $p.StandardInput.Close()
+    # Write raw ASCII bytes: on Windows PowerShell 5.1, the StandardInput writer prepends a
+    # UTF-8 BOM, which would corrupt the first line the program reads.
+    $bytes = [Text.Encoding]::ASCII.GetBytes((($InputLines -join "`n") + "`n"))
+    $p.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+    $p.StandardInput.BaseStream.Close()
     $out = $p.StandardOutput.ReadToEnd() + $p.StandardError.ReadToEnd()
     if (-not $p.WaitForExit(15000)) { $p.Kill(); return @{ Code = -1; Output = "$out<timed out>" } }
     @{ Code = $p.ExitCode; Output = $out.Trim() }
