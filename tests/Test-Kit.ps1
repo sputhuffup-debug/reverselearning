@@ -45,20 +45,20 @@ function Write-Result {
 function Invoke-Program {
     # Runs $Exe with $InputLines on stdin. Returns @{ Code; Output }.
     param([string]$Exe, [string[]]$InputLines)
-    $psi = New-Object Diagnostics.ProcessStartInfo
-    $psi.FileName               = $Exe
-    $psi.UseShellExecute        = $false
-    $psi.RedirectStandardInput  = $true
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError  = $true
-    $p = [Diagnostics.Process]::Start($psi)
-    # Write raw ASCII bytes: on Windows PowerShell 5.1, the StandardInput writer prepends a
-    # UTF-8 BOM, which would corrupt the first line the program reads.
-    $bytes = [Text.Encoding]::ASCII.GetBytes((($InputLines -join "`n") + "`n"))
-    $p.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
-    $p.StandardInput.BaseStream.Close()
-    $out = $p.StandardOutput.ReadToEnd() + $p.StandardError.ReadToEnd()
-    if (-not $p.WaitForExit(15000)) { $p.Kill(); return @{ Code = -1; Output = "$out<timed out>" } }
+    # Feed stdin from a file of raw ASCII bytes. Redirecting through Process.StandardInput on
+    # Windows PowerShell 5.1 sends a UTF-8 BOM first, which corrupts the first line read.
+    $base = Join-Path $OutDir ('run-' + [IO.Path]::GetRandomFileName())
+    $in = "$base.in"; $stdout = "$base.out"; $stderr = "$base.err"
+    [IO.File]::WriteAllBytes($in, [Text.Encoding]::ASCII.GetBytes((($InputLines -join "`n") + "`n")))
+    $p = Start-Process -FilePath $Exe -NoNewWindow -PassThru `
+            -RedirectStandardInput $in -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    $null = $p.Handle   # cache the handle so ExitCode is available after exit
+    $done = $p.WaitForExit(15000)
+    if (-not $done) { $p.Kill() }
+    $p.WaitForExit()    # the untimed overload also waits until redirected output is fully written
+    $out = ((Get-Content -LiteralPath $stdout -Raw) + (Get-Content -LiteralPath $stderr -Raw))
+    if ($null -eq $out) { $out = '' }
+    if (-not $done) { return @{ Code = -1; Output = "$out<timed out>" } }
     @{ Code = $p.ExitCode; Output = $out.Trim() }
 }
 
