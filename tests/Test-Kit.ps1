@@ -195,7 +195,7 @@ try {
 # lab\solutions\dayN\checks.psd1. Every program must be built and have at least one check.
 $exes = @{}
 $py = Get-Command python -ErrorAction SilentlyContinue
-foreach ($dayDir in Get-ChildItem -LiteralPath $LabSource -Directory | Where-Object { $_.Name -match '^day\d+$' } | Sort-Object { [int]($_.Name -replace '\D', '') }) {
+foreach ($dayDir in Get-ChildItem -LiteralPath $LabSource -Directory | Where-Object { $_.Name -match '^day\d+$' -and (Test-Path -LiteralPath (Join-Path $_.FullName 'Makefile')) } | Sort-Object { [int]($_.Name -replace '\D', '') }) {
     $day = $dayDir.Name
     Write-Host "Practice programs: $day"
     $progLine = Select-String -Path (Join-Path $dayDir.FullName 'Makefile') -Pattern '^\s*PROGS\s*=\s*(.+)$' | Select-Object -First 1
@@ -273,6 +273,40 @@ if ($Headless) {
         if ($script:SettingsInKit) { Write-Result $settingsUsed 'Ghidra wrote its settings into data\ghidra-settings' }
         if ($script:SettingsInKit -and $appData -and -not $appDataBefore) {
             Write-Result (-not (Test-Path -LiteralPath $appData)) 'Ghidra left %APPDATA%\ghidra alone'
+        }
+    }
+}
+
+# --- Ghidra solution scripts (with -Headless) ------------------------------------
+# Each lab\solutions\dayN\scripts.psd1 lists solution scripts (Java, in that folder) to run against a
+# built program with analyzeHeadless -postScript; each passes when the output contains every Expect.
+if ($Headless) {
+    $scriptFiles = @(Get-ChildItem -LiteralPath (Join-Path $LabSource 'solutions') -Recurse -Filter 'scripts.psd1' -ErrorAction SilentlyContinue)
+    if ($scriptFiles.Count -gt 0) { Write-Host "Ghidra solution scripts" }
+    $env:JAVA_HOME = Join-Path $Kit 'jdk'
+    $n = 0
+    foreach ($sf in $scriptFiles) {
+        $solDir = $sf.DirectoryName
+        foreach ($sc in @((Import-PowerShellDataFile -LiteralPath $sf.FullName).Scripts)) {
+            $n++
+            $exe = $exes[$sc.Program]
+            if (-not $exe) { Write-Result $false "script $($sc.Name)" "(program $($sc.Program) was not built)"; continue }
+            if (-not (Test-Path -LiteralPath (Join-Path $solDir $sc.Script))) { Write-Result $false "script $($sc.Name)" "(missing $($sc.Script) in $solDir)"; continue }
+            $projDir = Join-Path $OutDir "script-proj-$n"
+            New-Item -ItemType Directory $projDir -Force | Out-Null
+            $log = Join-Path $OutDir "script-$n.log"
+            $nul = Join-Path $OutDir 'empty.in'
+            if (-not (Test-Path -LiteralPath $nul)) { [IO.File]::WriteAllBytes($nul, [byte[]]@()) }
+            $scriptArgs = @($sc.ScriptArgs | Where-Object { $_ })
+            $p = Start-Process -FilePath 'cmd.exe' -NoNewWindow -Wait -PassThru -RedirectStandardOutput $log -RedirectStandardInput $nul `
+                    -ArgumentList '/c', ("`"`"$Kit\ghidra\support\analyzeHeadless.bat`" `"$projDir`" s$n -import `"$exe`" " +
+                                         "-scriptPath `"$solDir`" -postScript $($sc.Script) $($scriptArgs -join ' ') -deleteProject`"")
+            $text = Get-Content -LiteralPath $log -Raw
+            if ($null -eq $text) { $text = '' }
+            $missing = @(@($sc.Expect) | Where-Object { $text.IndexOf($_) -lt 0 })
+            $tail = (($text -split "`n") | Where-Object { $_ -match 'ERROR|Exception|\.java>' } | Select-Object -Last 12) -join "`n"
+            Write-Result ($p.ExitCode -eq 0 -and $missing.Count -eq 0) "script $($sc.Name) ($($sc.Script) on $($sc.Program))" `
+                "(exit $($p.ExitCode); missing: $($missing -join ' | '))`n$tail"
         }
     }
 }
