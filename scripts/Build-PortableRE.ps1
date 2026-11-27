@@ -256,8 +256,8 @@ start "" "%ROOT%ghidra\ghidraRun.bat"
     }
 
     # Opens a GCC shell in the lab folder: the one given as an argument, else data\lab-path.txt,
-    # else the kit's lab\. w64devkit.exe gives a Unix-style shell (v2+); if it's missing
-    # (older versions), fall back to a cmd window with GCC on PATH.
+    # else the kit's lab\. Opens w64devkit's Unix-style shell, or a cmd window with GCC on PATH
+    # if there is no sh.exe.
     Write-IfMissing (Join-Path $Destination 'Devkit.cmd') @'
 @echo off
 setlocal
@@ -271,10 +271,11 @@ if not exist "%LAB%\" (
     set "LAB=%ROOT%lab"
 )
 cd /d "%LAB%"
-if exist "%ROOT%w64devkit\w64devkit.exe" (
-    start "" "%ROOT%w64devkit\w64devkit.exe"
+set "PATH=%ROOT%w64devkit\bin;%PATH%"
+rem A plain (non-login) shell, not w64devkit.exe: its login shell always starts in %HOME%.
+if exist "%ROOT%w64devkit\bin\sh.exe" (
+    start "w64devkit" "%ROOT%w64devkit\bin\sh.exe"
 ) else (
-    set "PATH=%ROOT%w64devkit\bin;%PATH%"
     start "w64devkit" cmd /k "gcc --version"
 )
 '@

@@ -157,11 +157,10 @@ $saved = if (Test-Path -LiteralPath $labPathFile) { (Get-Content -LiteralPath $l
 Write-Result ((ConvertTo-Comparable $saved) -eq (ConvertTo-Comparable $LabSource)) 'data\lab-path.txt points at the repo lab folder' `
     "(found '$saved', expected '$LabSource')"
 
-# Run a copy of Devkit.cmd (in the kit root, so %~dp0 matches) that prints its folder instead of opening a shell.
+# Run a copy of Devkit.cmd (in the kit root, so %~dp0 matches) with "start" removed, so its shell
+# runs in this window; feed it "pwd" and check where the shell really is.
 $probe = Join-Path $Kit ('devkit-probe-' + [IO.Path]::GetRandomFileName() + '.cmd')
-$body  = (Get-Content -LiteralPath (Join-Path $Kit 'Devkit.cmd')) | ForEach-Object {
-    if ($_ -match '^\s*start\s') { '    echo CWD=%CD%' } else { $_ }
-}
+$body  = (Get-Content -LiteralPath (Join-Path $Kit 'Devkit.cmd')) | ForEach-Object { $_ -replace '^(\s*)start\s+"[^"]*"\s+', '$1' }
 Set-Content -LiteralPath $probe -Value $body -Encoding ASCII
 try {
     $cases = @(
@@ -170,23 +169,14 @@ try {
         @{ Name = 'missing folder -> kit lab\';  Args = @("`"$(Join-Path $OutDir 'nope')`"");  Expect = (Join-Path $Kit 'lab') }
     )
     foreach ($c in $cases) {
-        $r   = Invoke-Program 'cmd.exe' @() -Arguments (@('/c', "`"`"$probe`"") + $c.Args + @('"'))
-        $cwd = ([regex]::Match($r.Output, 'CWD=(.+)')).Groups[1].Value
-        Write-Result ((ConvertTo-Comparable $cwd) -eq (ConvertTo-Comparable $c.Expect)) "Devkit.cmd $($c.Name)" `
+        $r   = Invoke-Program 'cmd.exe' @('pwd', 'exit') -Arguments (@('/c', "`"`"$probe`"") + $c.Args + @('"'))
+        $cwd = (($r.Output -split "`n") | Where-Object { $_ -match '^\s*[A-Za-z]:[/\\]' } | Select-Object -Last 1)
+        if ($null -eq $cwd) { $cwd = '' }
+        Write-Result ((ConvertTo-Comparable $cwd) -eq (ConvertTo-Comparable $c.Expect)) "Devkit.cmd shell starts in: $($c.Name)" `
             "(expected '$($c.Expect)'; output: $($r.Output))"
     }
 } finally {
     Remove-Item -LiteralPath $probe -ErrorAction SilentlyContinue
-}
-
-# w64devkit.exe must start its shell in the current folder (Devkit.cmd relies on that).
-$devkitExe = Join-Path $Kit 'w64devkit\w64devkit.exe'
-if (Test-Path -LiteralPath $devkitExe) {
-    $r   = Invoke-Program $devkitExe @('pwd', 'exit') -WorkingDirectory $LabSource
-    $pwd_ = (($r.Output -split "`n") | Where-Object { $_ -match '^[A-Za-z]:[/\\]' } | Select-Object -Last 1)
-    if ($null -eq $pwd_) { $pwd_ = '' }
-    Write-Result ((ConvertTo-Comparable $pwd_) -eq (ConvertTo-Comparable $LabSource)) 'w64devkit.exe shell starts in the current folder' `
-        "(expected '$LabSource'; output: $($r.Output))"
 }
 
 # --- run the practice programs -------------------------------------------------
