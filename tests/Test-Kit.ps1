@@ -150,11 +150,13 @@ if ($OutDir -match ' ') {
     Write-Result $false 'make lab' "(OUT path has a space, which make can't handle: $OutDir; pass -OutDir)"
 } else {
     $outArg = 'OUT=' + ($OutDir.TrimEnd('\') -replace '\\', '/')
-    $p = Start-Process -FilePath $make -ArgumentList '-C', "`"$LabSource`"", $outArg -NoNewWindow -Wait -PassThru
-    $built = $p.ExitCode -eq 0
-    Write-Result $built 'make lab (every day)' "(exit $($p.ExitCode))"
-    # Nothing should be written next to the sources.
-    $stray = @(Get-ChildItem -LiteralPath $LabSource -Recurse -File -Include '*.exe', '*.o', '*.obj')
+    $r = Invoke-Program $make @() -Arguments @('-C', "`"$LabSource`"", $outArg)
+    Write-Host $r.Output
+    $built = $r.Code -eq 0
+    $tail = (($r.Output -split "`n") | Select-Object -Last 12) -join "`n"
+    Write-Result $built 'make lab (every day)' "(exit $($r.Code))`n$tail"
+    # Nothing should be written next to the sources. (-Include doesn't filter with -LiteralPath on PS 5.1.)
+    $stray = @(Get-ChildItem -LiteralPath $LabSource -Recurse -File | Where-Object { $_.Extension -in '.exe', '.o', '.obj' })
     Write-Result ($stray.Count -eq 0) 'make left lab\ clean' "(found: $($stray.FullName -join ', '))"
 }
 

@@ -15,12 +15,16 @@ DAYS := $(sort $(patsubst %/Makefile,%,$(wildcard day*/Makefile)))
 # Each day runs in its own folder, so a relative OUT gets a "../" in front.
 day_out = $(if $(findstring :,$(OUT))$(filter /%,$(OUT)),$(OUT),../$(OUT))/$(1)
 
+# Recipes quote $(MAKE) with forward slashes: when make was started by its full Windows path,
+# the shell would read the backslashes as escapes. ($(MAKE) must stay in the recipe line itself
+# so make treats it as a recursive call.)
+
 all: $(DAYS)
 
 $(DAYS):
-	$(MAKE) -C $@ OUT=$(call day_out,$@)
+	"$(subst \,/,$(MAKE))" -C $@ OUT=$(call day_out,$@)
 
 clean:
-	$(foreach d,$(DAYS),$(MAKE) -C $(d) clean OUT=$(call day_out,$(d)) &&) true
+	$(foreach d,$(DAYS),"$(subst \,/,$(MAKE))" -C $(d) clean OUT=$(call day_out,$(d)) &&) true
 
 .PHONY: all clean $(DAYS)
