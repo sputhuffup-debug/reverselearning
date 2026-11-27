@@ -17,7 +17,7 @@ Nothing is installed on the system. You can move the folder to another drive or 
 The repo also has:
 
 - `lab/`: three small C practice programs that get harder in turn (plain-text password, name-based serial, XOR-hidden key with an anti-debugging check). Spoilers are in `lab/solutions/`.
-- `docs/`: the Day 1 training course (Ghidra basics, x64dbg basics, a capstone).
+- `docs/`: the [Day 1 training course](docs/day1-training.md) (Ghidra basics, x64dbg basics, a capstone) and the [roadmap](docs/roadmap.md) for the full eight-day course.
 
 Requires Windows with PowerShell 5.1 or later. Use a VM for practice.
 
