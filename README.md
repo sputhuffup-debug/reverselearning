@@ -16,7 +16,7 @@ Nothing is installed on the system. You can move the folder to another drive or 
 
 The repo also has:
 
-- `lab/`: three small C practice programs that get harder in turn (plain-text password, name-based serial, XOR-hidden key with an anti-debugging check). Spoilers are in `lab/solutions/`.
+- `lab/`: the practice programs, one folder per course day (`lab/day1/`: plain-text password, name-based serial, XOR-hidden key with an anti-debugging check). Spoilers and answer checks are in `lab/solutions/dayN/`.
 - `docs/`: the [Day 1 training course](docs/day1-training.md) (Ghidra basics, x64dbg basics, a capstone) and the [roadmap](docs/roadmap.md) for the full 15-day course.
 
 Requires Windows with PowerShell 5.1 or later. Use a VM for practice.
@@ -38,8 +38,9 @@ You can run the script again safely: tools that are already installed are skippe
 Open `RE-Portable\Devkit.cmd`. Its shell starts in this repo's `lab` folder (the build saves that location in `RE-Portable\data\lab-path.txt`; edit it if you move the repo, or run `Devkit.cmd D:\path\to\lab`). Then:
 
 ```sh
-make                              # -> bin/ex1.exe, bin/ex2.exe, bin/ex3.exe
-make OUT=E:/RE-Portable/lab       # or put them somewhere else
+make                              # every day -> bin/day1/ex1.exe, bin/day1/ex2.exe, ...
+make day1                         # one day
+make OUT=E:/RE-Portable/lab       # or put them somewhere else (-> E:/RE-Portable/lab/day1/...)
 make clean
 ```
 

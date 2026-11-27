@@ -145,22 +145,17 @@ Write-Host "Compile lab (output in $OutDir)"
 # Uses lab\Makefile with the kit's make, the same way a student builds from Devkit.cmd.
 $make = Join-Path $Kit 'w64devkit\bin\make.exe'
 $env:PATH = (Join-Path $Kit 'w64devkit\bin') + ';' + $env:PATH
-$exes = @{}
+$built = $false
 if ($OutDir -match ' ') {
     Write-Result $false 'make lab' "(OUT path has a space, which make can't handle: $OutDir; pass -OutDir)"
 } else {
     $outArg = 'OUT=' + ($OutDir.TrimEnd('\') -replace '\\', '/')
     $p = Start-Process -FilePath $make -ArgumentList '-C', "`"$LabSource`"", $outArg -NoNewWindow -Wait -PassThru
-    Write-Result ($p.ExitCode -eq 0) 'make lab' "(exit $($p.ExitCode))"
-    foreach ($name in 'ex1', 'ex2', 'ex3') {
-        $exe = Join-Path $OutDir "$name.exe"
-        $ok  = Test-Path -LiteralPath $exe
-        Write-Result $ok "built $name.exe"
-        if ($ok) { $exes[$name] = $exe }
-    }
+    $built = $p.ExitCode -eq 0
+    Write-Result $built 'make lab (every day)' "(exit $($p.ExitCode))"
     # Nothing should be written next to the sources.
-    $stray = @(Get-ChildItem -LiteralPath $LabSource -File | Where-Object { $_.Name -notmatch '\.c$|^Makefile$' })
-    Write-Result ($stray.Count -eq 0) 'make left lab\ clean' "(found: $($stray.Name -join ', '))"
+    $stray = @(Get-ChildItem -LiteralPath $LabSource -Recurse -File -Include '*.exe', '*.o', '*.obj')
+    Write-Result ($stray.Count -eq 0) 'make left lab\ clean' "(found: $($stray.FullName -join ', '))"
 }
 
 # --- Devkit.cmd opens the shell in the repo's lab folder ------------------------
@@ -193,35 +188,49 @@ try {
     Remove-Item -LiteralPath $probe -ErrorAction SilentlyContinue
 }
 
-# --- run the practice programs -------------------------------------------------
-Write-Host "Practice programs"
-if ($exes['ex1']) {
-    Test-Program 'ex1 right password' $exes['ex1'] @('hunter2-ghidra') 0 'Access granted!'
-    Test-Program 'ex1 wrong password' $exes['ex1'] @('hunter2') 1 'Access denied.'
-}
-if ($exes['ex2']) {
-    Test-Program 'ex2 alice/cfb71247'  $exes['ex2'] @('alice', 'cfb71247') 0 'Valid serial.'
-    Test-Program 'ex2 wrong serial'    $exes['ex2'] @('alice', 'deadbeef') 1 'Invalid serial.'
-    Test-Program 'ex2 short name'      $exes['ex2'] @('bob') 1 'at least 4 characters'
-    # Cross-check the keygen against the program for another name, if Python is around.
-    $py = Get-Command python -ErrorAction SilentlyContinue
-    if ($py) {
-        $keygen = Join-Path $LabSource 'solutions\keygen_ex2.py'
-        $serial = (& $py.Source -I $keygen 'reverser').Trim()
-        Test-Program "ex2 keygen serial for 'reverser' ($serial)" $exes['ex2'] @('reverser', $serial) 0 'Valid serial.'
-    } else {
-        Write-Host "  SKIP  ex2 keygen cross-check (python not found)"
+# --- run the practice programs, day by day ------------------------------------
+# Each lab\dayN\Makefile lists its programs (PROGS = name:source ...); each day's answers are in
+# lab\solutions\dayN\checks.psd1. Every program must be built and have at least one check.
+$exes = @{}
+$py = Get-Command python -ErrorAction SilentlyContinue
+foreach ($dayDir in Get-ChildItem -LiteralPath $LabSource -Directory | Where-Object { $_.Name -match '^day\d+$' } | Sort-Object { [int]($_.Name -replace '\D', '') }) {
+    $day = $dayDir.Name
+    Write-Host "Practice programs: $day"
+    $progLine = Select-String -Path (Join-Path $dayDir.FullName 'Makefile') -Pattern '^\s*PROGS\s*=\s*(.+)$' | Select-Object -First 1
+    $progs = if ($progLine) { @($progLine.Matches[0].Groups[1].Value -split '\s+' | Where-Object { $_ } | ForEach-Object { ($_ -split ':')[0] }) } else { @() }
+    Write-Result ($progs.Count -gt 0) "$day Makefile lists its programs"
+    foreach ($prog in $progs) {
+        $exe = Join-Path $OutDir "$day\$prog.exe"
+        $ok  = $built -and (Test-Path -LiteralPath $exe)
+        Write-Result $ok "built $day/$prog.exe"
+        if ($ok) { $exes["$day/$prog"] = $exe }
     }
-}
-if ($exes['ex3']) {
-    Test-Program 'ex3 right key' $exes['ex3'] @('R3v3rs1ng_D4y1') 0 'License OK.'
-    Test-Program 'ex3 wrong key' $exes['ex3'] @('R3v3rs1ng')      0 'Bad license key.'
+
+    $solDir     = Join-Path $LabSource "solutions\$day"
+    $checksFile = Join-Path $solDir 'checks.psd1'
+    if (-not (Test-Path -LiteralPath $checksFile)) { Write-Result $false "$day has lab\solutions\$day\checks.psd1"; continue }
+    $checks = @((Import-PowerShellDataFile -LiteralPath $checksFile).Checks)
+    foreach ($prog in $progs) {
+        $n = @($checks | Where-Object { $_.Program -eq $prog }).Count
+        Write-Result ($n -gt 0) "$day/$prog has answer checks" "(none in $checksFile)"
+    }
+    foreach ($c in $checks) {
+        $exe = $exes["$day/$($c.Program)"]
+        if (-not $exe) { continue }   # already reported as not built
+        $inputLines = @($c.Input)
+        if ($c.Keygen) {
+            if (-not $py) { Write-Host "  SKIP  $day $($c.Name) (python not found)"; continue }
+            $keygenOut = (& $py.Source -I (Join-Path $solDir $c.Keygen) @($c.KeygenArgs) | Out-String).Trim()
+            $inputLines = @($inputLines | ForEach-Object { $_.Replace('{keygen}', $keygenOut) })
+        }
+        Test-Program "$day $($c.Name)" $exe $inputLines $c.Exit $c.Expect
+    }
 }
 
 # --- Ghidra headless import (optional, takes a minute or two) -------------------
 if ($Headless) {
     Write-Host "Ghidra headless import"
-    $target = $exes['ex1']
+    $target = $exes['day1/ex1']
     if (-not $target) {
         Write-Result $false 'Ghidra headless import' '(ex1 did not compile)'
     } else {

@@ -1,36 +1,26 @@
-# Builds the practice programs from this folder into $(OUT) (default: bin/).
-# The .c files stay where they are; only the .exe files land in $(OUT).
+# Builds every day's practice programs into $(OUT)/<day>/ (default: bin/day1/ex1.exe, ...).
+# The sources stay where they are.
 #
 # From the w64devkit shell (Devkit.cmd opens it in this folder):
-#   make                                   # -> bin/ex1.exe, bin/ex2.exe, bin/ex3.exe
-#   make OUT=D:/RE-Portable/lab            # put them somewhere else
+#   make                          # every day
+#   make day1                     # one day
+#   make OUT=D:/RE-Portable/lab   # somewhere else (-> D:/RE-Portable/lab/day1/...)
 #   make clean
-# From anywhere else: make -C path/to/repo/lab
 #
 # OUT must not contain spaces (a make limitation); use forward slashes.
 
-CC      = gcc
-# -O0 keeps the code close to the source; -s strips symbol names so you recover them yourself.
-CFLAGS ?= -O0 -s -Wall
-OUT    ?= bin
+OUT  ?= bin
+DAYS := $(sort $(patsubst %/Makefile,%,$(wildcard day*/Makefile)))
 
-EXES := $(OUT)/ex1.exe $(OUT)/ex2.exe $(OUT)/ex3.exe
+# Each day runs in its own folder, so a relative OUT gets a "../" in front.
+day_out = $(if $(findstring :,$(OUT))$(filter /%,$(OUT)),$(OUT),../$(OUT))/$(1)
 
-all: $(EXES)
+all: $(DAYS)
 
-$(OUT)/ex1.exe: ex1_password.c | $(OUT)
-	$(CC) $(CFLAGS) $< -o $@
-
-$(OUT)/ex2.exe: ex2_serial.c | $(OUT)
-	$(CC) $(CFLAGS) $< -o $@
-
-$(OUT)/ex3.exe: ex3_crackme.c | $(OUT)
-	$(CC) $(CFLAGS) $< -o $@
-
-$(OUT):
-	mkdir -p $@
+$(DAYS):
+	$(MAKE) -C $@ OUT=$(call day_out,$@)
 
 clean:
-	rm -f $(EXES)
+	$(foreach d,$(DAYS),$(MAKE) -C $(d) clean OUT=$(call day_out,$(d)) &&) true
 
-.PHONY: all clean
+.PHONY: all clean $(DAYS)

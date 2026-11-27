@@ -17,7 +17,7 @@ By the end of Day 1 you will find, understand and bypass a license check in a Wi
 **What you need**
 
 - The portable kit built by `Build-PortableRE.ps1`: Ghidra, its JDK, x64dbg, and the w64devkit GCC toolchain with `make`.
-- A copy of the course repo. Its `lab` folder holds the three practice programs and the Makefile that builds them.
+- A copy of the course repo. Its `lab/day1` folder holds today's three practice programs, and `lab/Makefile` builds them.
 - Basic C. No assembly is needed in advance; you learn what you need as you go.
 
 **Lab rules**
@@ -45,24 +45,24 @@ The day runs about 7 hours with breaks, and roughly half of it is hands-on exerc
 
 ## Module 0: Build the practice programs (30 min)
 
-You will reverse three programs that get harder in turn: a hardcoded password, a serial number worked out from a name, and a hidden key with an anti-debugging check. Their sources are in the repo's `lab` folder and linked below. Don't reread the source once it's compiled; the aim is to recover it with the tools.
+You will reverse three programs that get harder in turn: a hardcoded password, a serial number worked out from a name, and a hidden key with an anti-debugging check. Their sources are in the repo's `lab/day1` folder and linked below. Don't reread the source once it's compiled; the aim is to recover it with the tools.
 
-[**ex1\_password.c**](../lab/ex1_password.c): a password stored as plain text
+[**ex1\_password.c**](../lab/day1/ex1_password.c): a password stored as plain text
 
-[**ex2\_serial.c**](../lab/ex2_serial.c): the serial is calculated from the name
+[**ex2\_serial.c**](../lab/day1/ex2_serial.c): the serial is calculated from the name
 
-[**ex3\_crackme.c**](../lab/ex3_crackme.c): a key that is only decoded at runtime, plus a debugger check
+[**ex3\_crackme.c**](../lab/day1/ex3_crackme.c): a key that is only decoded at runtime, plus a debugger check
 
 **Compile** with `make`. Open `RE-Portable\Devkit.cmd`; its shell starts in the repo's `lab` folder. Then run:
 
 ```bash
-make          # builds bin/ex1.exe, bin/ex2.exe and bin/ex3.exe
+make day1     # builds bin/day1/ex1.exe, ex2.exe and ex3.exe
 make clean    # deletes them
 ```
 
-The `.c` files stay where they are; only the executables go into `bin`. The Makefile compiles with `-O0`, which keeps the code close to the source, and `-s`, which strips the function names so you have to recover them yourself. After you change a source, run `make` again; it rebuilds only what changed.
+The `.c` files stay where they are; only the executables go into `bin/day1`. Plain `make` builds every day's programs at once. The Makefile compiles with `-O0`, which keeps the code close to the source, and `-s`, which strips the function names so you have to recover them yourself. After you change a source, run `make` again; it rebuilds only what changed.
 
-Run each `.exe` in `bin` once with a wrong answer so you know what failure looks like. Then close the `.c` files and leave them closed until the answer key.
+Run each `.exe` in `bin/day1` once with a wrong answer so you know what failure looks like. Then close the `.c` files and leave them closed until the answer key.
 
 ## Module 1: Ghidra fundamentals (1 h 45 min)
 
@@ -197,7 +197,7 @@ Try each exercise for at least 15 minutes before you look here. Addresses depend
 | 3B | `IsDebuggerPresent` returns 1 in RAX when a debugger is attached | Setting RAX to 0 after the call skips the exit; the decoded key is in the second `strcmp` argument (RDX) |
 | 3C | Patch the jumps, not the calls | NOP the jump that leads to "Debugger detected" and the jump that leads to "Bad license key"; saving with Patch File keeps the original intact |
 
-A keygen for Exercise 1.2 (also in [lab/solutions/keygen_ex2.py](../lab/solutions/keygen_ex2.py)):
+A keygen for Exercise 1.2 (also in [lab/solutions/day1/keygen_ex2.py](../lab/solutions/day1/keygen_ex2.py)):
 
 ```python
 import sys
