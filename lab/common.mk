@@ -6,6 +6,7 @@
 #   include ../common.mk
 #
 # Optional per-program flags: CFLAGS_<exe name> = -O2   (added after CFLAGS)
+# Keep symbol names in one program (no -s):  NOSTRIP_<exe name> = 1
 # Sources ending in .cpp are built with g++.
 
 CC       = gcc
@@ -22,7 +23,7 @@ all: $(EXES)
 
 define prog_rule
 $(OUT)/$(call exe_name,$(1)).exe: $(call exe_src,$(1)) | $(OUT)
-	$$(if $$(filter %.cpp,$$<),$$(CXX),$$(CC)) $$(CFLAGS) $$(CFLAGS_$(call exe_name,$(1))) $$< -o $$@
+	$$(if $$(filter %.cpp,$$<),$$(CXX),$$(CC)) $$(if $$(NOSTRIP_$(call exe_name,$(1))),$$(filter-out -s,$$(CFLAGS)),$$(CFLAGS)) $$(CFLAGS_$(call exe_name,$(1))) $$< -o $$@
 endef
 $(foreach p,$(PROGS),$(eval $(call prog_rule,$(p))))
 

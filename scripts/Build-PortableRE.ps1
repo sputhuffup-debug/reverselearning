@@ -5,6 +5,7 @@
       - Temurin JDK     (the version Ghidra requires, bundled so no Java install is needed)
       - x64dbg          (latest snapshot)
       - w64devkit       (portable GCC toolchain for compiling practice programs)
+      - w64devkit32     (the same toolchain for 32-bit x86 programs)
 
     Safe to re-run. For each tool:
       - already installed (its main file is present)  -> skipped, nothing downloaded
@@ -141,7 +142,7 @@ New-Item -ItemType Directory $Work | Out-Null
 
 try {
     # --- Ghidra --------------------------------------------------------------
-    Write-Host "[1/4] Ghidra"
+    Write-Host "[1/5] Ghidra"
     Install-Component 'Ghidra' 'ghidra' 'ghidraRun.bat' {
         $a = Get-LatestAsset 'NationalSecurityAgency/ghidra' '^ghidra_.*_PUBLIC_.*\.zip$'
         $f = Join-Path $Work $a.name
@@ -150,7 +151,7 @@ try {
     }
 
     # --- JDK -----------------------------------------------------------------
-    Write-Host "[2/4] Temurin JDK"
+    Write-Host "[2/5] Temurin JDK"
     if ($JdkVersion -eq 0) {
         $appProps = Join-Path $Destination 'ghidra\Ghidra\application.properties'
         $minLine  = Select-String -Path $appProps -Pattern '^\s*application\.java\.min\s*=\s*(\d+)' | Select-Object -First 1
@@ -176,7 +177,7 @@ try {
     }
 
     # --- x64dbg --------------------------------------------------------------
-    Write-Host "[3/4] x64dbg"
+    Write-Host "[3/5] x64dbg"
     Install-Component 'x64dbg' 'x64dbg' 'x64\x64dbg.exe' {
         $a = Get-LatestAsset 'x64dbg/x64dbg' '^snapshot_.*\.zip$'
         $f = Join-Path $Work $a.name
@@ -187,13 +188,29 @@ try {
     }
 
     # --- w64devkit (GCC) -----------------------------------------------------
-    Write-Host "[4/4] w64devkit (GCC compiler)"
+    Write-Host "[4/5] w64devkit (GCC compiler)"
     Install-Component 'w64devkit' 'w64devkit' 'bin\gcc.exe' {
         # v2+ ships a 7-Zip self-extracting exe (w64devkit-x64-2.11.0.7z.exe); older versions shipped a .zip.
         $a = Get-LatestAsset 'skeeto/w64devkit' '^w64devkit-(x64-)?[\d.]+(\.7z)?\.(exe|zip)$'
         $f = Join-Path $Work $a.name
         Save-File $a.browser_download_url $f (Get-AssetSha $a)
         Expand-ToTemp $f
+    }
+
+    # --- w64devkit, 32-bit (GCC for x86) -----------------------------------------
+    # The same toolchain built for 32-bit x86 (w64devkit-x86-<ver>.7z.exe; older releases named it
+    # i686), for the course's 32-bit programs. Kept apart in w64devkit32\ so the two never mix.
+    Write-Host "[5/5] w64devkit32 (32-bit GCC compiler)"
+    try {
+        Install-Component 'w64devkit32' 'w64devkit32' 'bin\gcc.exe' {
+            $a = Get-LatestAsset 'skeeto/w64devkit' '^w64devkit-(x86|i686)-[\d.]+(\.7z)?\.(exe|zip)$'
+            $f = Join-Path $Work $a.name
+            Save-File $a.browser_download_url $f (Get-AssetSha $a)
+            Expand-ToTemp $f
+        }
+    } catch {
+        # Not fatal: the 64-bit kit is complete without it. Re-run the script later to add it.
+        Write-Warning "32-bit w64devkit not installed: $($_.Exception.Message)"
     }
 
     # --- launchers (written only if missing) ---------------------------------
@@ -268,8 +285,8 @@ start "" "%ROOT%ghidra\ghidraRun.bat"
 
     # Opens a GCC shell in the lab folder: the one given as an argument, else data\lab-path.txt,
     # else the kit's lab\. Opens w64devkit's Unix-style shell, or a cmd window with GCC on PATH
-    # if there is no sh.exe.
-    Write-IfMissing (Join-Path $Destination 'Devkit.cmd') @'
+    # if there is no sh.exe. Devkit.cmd uses the 64-bit toolchain, Devkit32.cmd the 32-bit one.
+    $devkitTemplate = @'
 @echo off
 setlocal
 set "ROOT=%~dp0"
@@ -282,14 +299,18 @@ if not exist "%LAB%\" (
     set "LAB=%ROOT%lab"
 )
 cd /d "%LAB%"
-set "PATH=%ROOT%w64devkit\bin;%PATH%"
+set "PATH=%ROOT%__DEVKIT__\bin;%PATH%"
 rem A plain (non-login) shell, not w64devkit.exe: its login shell always starts in %HOME%.
-if exist "%ROOT%w64devkit\bin\sh.exe" (
-    start "w64devkit" "%ROOT%w64devkit\bin\sh.exe"
+if exist "%ROOT%__DEVKIT__\bin\sh.exe" (
+    start "__DEVKIT__" "%ROOT%__DEVKIT__\bin\sh.exe"
 ) else (
-    start "w64devkit" cmd /k "gcc --version"
+    start "__DEVKIT__" cmd /k "gcc --version"
 )
 '@
+    Write-IfMissing (Join-Path $Destination 'Devkit.cmd') ($devkitTemplate -replace '__DEVKIT__', 'w64devkit')
+    if (Test-Path -LiteralPath (Join-Path $Destination 'w64devkit32\bin\gcc.exe')) {
+        Write-IfMissing (Join-Path $Destination 'Devkit32.cmd') ($devkitTemplate -replace '__DEVKIT__', 'w64devkit32')
+    }
 
     # Always re-apply paths (harmless if already set), so ghidraRun.bat also works when launched directly.
     & (Join-Path $Destination 'data\fix-ghidra-paths.ps1') -Root $Destination
@@ -303,3 +324,4 @@ Write-Host "Done: $Destination" -ForegroundColor Green
 Write-Host "  Ghidra.cmd   - Ghidra with bundled JDK; settings in data\, save projects in projects\"
 Write-Host "  x64dbg.cmd   - 64-bit debugger (x32dbg.cmd for 32-bit)"
 Write-Host "  Devkit.cmd   - GCC shell opened in the repo's lab folder (see data\lab-path.txt); run 'make' there"
+Write-Host "  Devkit32.cmd - the same with the 32-bit GCC (w64devkit32), for 32-bit programs"

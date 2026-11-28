@@ -9,8 +9,8 @@ A portable reverse-engineering lab kit for Windows, plus a beginner training cou
 - **Ghidra** (latest release)
 - **Eclipse Temurin JDK**, at the version Ghidra requires
 - **x64dbg** (latest snapshot)
-- **w64devkit**, a portable GCC toolchain for compiling the practice programs
-- Launchers: `Ghidra.cmd`, `x64dbg.cmd`, `x32dbg.cmd`, `Devkit.cmd`
+- **w64devkit**, a portable GCC toolchain for compiling the practice programs, in 64-bit (`w64devkit\`) and 32-bit (`w64devkit32\`) builds
+- Launchers: `Ghidra.cmd`, `x64dbg.cmd`, `x32dbg.cmd`, `Devkit.cmd` (64-bit GCC), `Devkit32.cmd` (32-bit GCC)
 
 Nothing is installed on the system. You can move the folder to another drive or PC, and Ghidra's settings stay inside it.
 

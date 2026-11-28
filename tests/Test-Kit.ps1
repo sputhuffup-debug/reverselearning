@@ -66,8 +66,10 @@ function Invoke-Program {
 }
 
 function Test-Program {
-    param([string]$Name, [string]$Exe, [string[]]$InputLines, [int]$ExpectCode, [string]$ExpectText)
-    $r  = Invoke-Program $Exe $InputLines
+    param([string]$Name, [string]$Exe, [string[]]$InputLines, [int]$ExpectCode, [string]$ExpectText, [string[]]$ProgramArgs = @())
+    # Quote command-line arguments that contain spaces (or are empty).
+    $quoted = @($ProgramArgs | Where-Object { $null -ne $_ } | ForEach-Object { if ($_ -eq '' -or $_ -match '\s') { "`"$_`"" } else { $_ } })
+    $r  = Invoke-Program $Exe $InputLines -Arguments $quoted
     $ok = ($r.Code -eq $ExpectCode) -and ($r.Output -like "*$ExpectText*")
     Write-Result $ok $Name "(expected exit $ExpectCode and '$ExpectText'; got exit $($r.Code): $($r.Output))"
 }
@@ -75,8 +77,8 @@ function Test-Program {
 # --- kit layout ----------------------------------------------------------------
 Write-Host "Kit layout ($Kit)"
 foreach ($f in @('ghidra\ghidraRun.bat', 'ghidra\support\analyzeHeadless.bat', 'jdk\bin\java.exe',
-                 'x64dbg\x64\x64dbg.exe', 'x64dbg\x32\x32dbg.exe', 'w64devkit\bin\gcc.exe',
-                 'Ghidra.cmd', 'x64dbg.cmd', 'x32dbg.cmd', 'Devkit.cmd', 'data\fix-ghidra-paths.ps1')) {
+                 'x64dbg\x64\x64dbg.exe', 'x64dbg\x32\x32dbg.exe', 'w64devkit\bin\gcc.exe', 'w64devkit32\bin\gcc.exe',
+                 'Ghidra.cmd', 'x64dbg.cmd', 'x32dbg.cmd', 'Devkit.cmd', 'Devkit32.cmd', 'data\fix-ghidra-paths.ps1')) {
     Write-Result (Test-Path -LiteralPath (Join-Path $Kit $f)) "exists: $f"
 }
 
@@ -160,6 +162,32 @@ if ($OutDir -match ' ') {
     Write-Result ($stray.Count -eq 0) 'make left lab\ clean' "(found: $($stray.FullName -join ', '))"
 }
 
+# --- the 32-bit toolchain builds and runs a 32-bit program ---------------------
+Write-Host "32-bit toolchain (w64devkit32)"
+$gcc32 = Join-Path $Kit 'w64devkit32\bin\gcc.exe'
+if (-not (Test-Path -LiteralPath $gcc32)) {
+    Write-Result $false 'w64devkit32 installed' "(missing $gcc32)"
+} elseif ($OutDir -match ' ') {
+    Write-Result $false '32-bit build' "(OUT path has a space: $OutDir)"
+} else {
+    $exe32 = Join-Path $OutDir 'ex1_32.exe'
+    $src   = Join-Path $LabSource 'day1\ex1_password.c'
+    # Run with the 32-bit bin first on PATH, the way Devkit32.cmd sets it up.
+    $savedPath = $env:PATH
+    $env:PATH  = (Join-Path $Kit 'w64devkit32\bin') + ';' + $env:PATH
+    $r = Invoke-Program $gcc32 @() -Arguments @('-O0', '-s', '-Wall', "`"$src`"", '-o', "`"$exe32`"")
+    $env:PATH  = $savedPath
+    Write-Result ($r.Code -eq 0 -and (Test-Path -LiteralPath $exe32)) 'w64devkit32 gcc builds day1/ex1' "(exit $($r.Code): $($r.Output))"
+    if (Test-Path -LiteralPath $exe32) {
+        # PE header: e_lfanew at 0x3C, then "PE\0\0" and the 2-byte machine type (0x14C = x86, 0x8664 = x64).
+        $bytes   = [IO.File]::ReadAllBytes($exe32)
+        $peOff   = [BitConverter]::ToInt32($bytes, 0x3C)
+        $machine = [BitConverter]::ToUInt16($bytes, $peOff + 4)
+        Write-Result ($machine -eq 0x14C) 'the 32-bit build is a PE32 (x86) file' ("(machine 0x{0:X})" -f $machine)
+        Test-Program '32-bit ex1 right password' $exe32 @('hunter2-ghidra') 0 'Access granted!'
+    }
+}
+
 # --- Devkit.cmd opens the shell in the repo's lab folder ------------------------
 Write-Host "Devkit.cmd"
 function ConvertTo-Comparable { param([string]$Path) ($Path.Trim() -replace '\\', '/').TrimEnd('/').ToLowerInvariant() }
@@ -225,7 +253,7 @@ foreach ($dayDir in Get-ChildItem -LiteralPath $LabSource -Directory | Where-Obj
             $keygenOut = (& $py.Source -I (Join-Path $solDir $c.Keygen) @($c.KeygenArgs) | Out-String).Trim()
             $inputLines = @($inputLines | ForEach-Object { $_.Replace('{keygen}', $keygenOut) })
         }
-        Test-Program "$day $($c.Name)" $exe $inputLines $c.Exit $c.Expect
+        Test-Program "$day $($c.Name)" $exe $inputLines $c.Exit $c.Expect @($c.Args)
     }
 }
 
