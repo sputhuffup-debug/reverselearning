@@ -12,5 +12,6 @@
            ScriptArgs = @('puts') }
         @{ Name = 'decode ex3 key';          Script = 'Day5DecodeKey.java';      Program = 'day1/ex3'; Expect = @('Key: R3v3rs1ng_D4y1') }
         @{ Name = 'decode day5 ex1 messages'; Script = 'Day5DecodeMessages.java'; Program = 'day5/ex1'; Expect = @('Unlock word: brass-lantern-7', "Keeper's log, week one.", '15 key 0xc1 sealed') }
+        @{ Name = 'decode day5 checkpoint';   Script = 'Day5Checkpoint.java';     Program = 'day5/checkpoint'; Expect = @('Passphrase: north-relay-holds-at-dawn-42', 'Live stations: 28') }
     )
 }

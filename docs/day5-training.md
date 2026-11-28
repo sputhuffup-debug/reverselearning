@@ -26,11 +26,12 @@ A script never replaces understanding. It only does what you tell it, so you mus
 4. Follow references in a script: from a string to the code that uses it, and from a call to its arguments.
 5. Read bytes from the program and decode them: Day 1's `ex3` key, then a table of 20 encoded messages.
 6. Explain every line of the scripts you write.
+7. Solve a blind checkpoint with the five steps: decode a few records by hand, then script the rest.
 
 **What you need**
 
 - The portable kit built by `Build-PortableRE.ps1`, as on Day 1. Ghidra compiles scripts with the kit's JDK, so nothing else needs installing.
-- The course repo. Its `lab/day5` folder holds today's practice program, and `lab/day5/scripts` holds the four script skeletons.
+- The course repo. Its `lab/day5` folder holds today's practice program, and `lab/day5/scripts` holds the five script skeletons.
 - Day 1's `ex1` and `ex3`, built with `make day1`.
 - Day 1's skills: strings, references and renaming. Day 4's struct layouts help with the capstone.
 - No Java experience is needed. You need variables, `if`, loops and method calls; the guide explains anything beyond that.
@@ -38,6 +39,8 @@ A script never replaces understanding. It only does what you tell it, so you mus
 **Before you start**
 
 If you haven't written Java before, read [Just enough Java for Ghidra scripts](primers/08-java-for-ghidra.md). It covers what today's scripts need and nothing more. The exercises also lean on [Reading assembly](primers/03-reading-assembly.md) and [The stack and the calling convention](primers/05-stack-and-calls.md).
+
+The checkpoint uses Day 0's [approach primer](primers/00-approach.md) and its [analysis notes template](templates/analysis-notes.md).
 
 You don't need to memorize the primers. Throughout the guide, a short "Primer:" note links to the exact section that explains the idea in front of you. Follow it when a step doesn't make sense, then come back.
 
@@ -67,7 +70,7 @@ The complete solutions are in [lab/solutions/day5](../lab/solutions/day5). Open 
 
 ## Schedule
 
-The day runs about 7 hours with breaks, and roughly half of it is hands-on exercise time.
+The day runs about 7.5 hours with breaks, and roughly half of it is hands-on exercise time.
 
 | Time | Block | What you do |
 | --- | --- | --- |
@@ -80,10 +83,10 @@ The day runs about 7 hours with breaks, and roughly half of it is hands-on exerc
 | 3:35–4:20 | Lunch |  |
 | 4:20–5:20 | Module 3: Exercise 5.3 | Decode Day 1's `ex3` key with a script |
 | 5:20–6:35 | Module 4: Capstone | Decode every message in `ex1`, sealed ones included |
-| 6:35–6:55 | Review | Go over the answer key and compare your scripts with the solutions |
-| 6:55–7:00 | Wrap-up | Reference updates and the plan for Day 6 |
+| 6:35–7:20 | Checkpoint | Recover a passphrase from a new program, blind |
+| 7:20–7:30 | Review and wrap-up | Compare with the answer key and solutions; reference updates and the plan for Day 6 |
 
-The "Same idea" notes take about five minutes each, at the end of each exercise or during the review. [Beyond this lesson](#beyond-this-lesson) is outside the 7 hours.
+The "Same idea" notes take about five minutes each, at the end of each exercise or during the review. [Beyond this lesson](#beyond-this-lesson) is outside the 7.5 hours.
 
 ## Module 0: Build the practice program (20 min)
 
@@ -94,9 +97,11 @@ Today has one new program, a lighthouse keeper's log. It holds 20 short messages
 **Compile** with `make`. Open `RE-Portable\Devkit.cmd`; its shell starts in the repo's `lab` folder. Then run:
 
 ```bash
-make day5     # builds bin/day5/ex1.exe
+make day5     # builds bin/day5/ex1.exe and checkpoint.exe
 make day1     # Exercises 5.1 to 5.3 use Day 1's ex1 and ex3
 ```
+
+`checkpoint.exe` is for the [Checkpoint](#checkpoint) at the end of the day. Leave it alone until then. Its source is with the solutions, so don't look for it.
 
 Run `bin/day5/ex1.exe` three times: once with `1`, once with `5`, and once with any word. Note what each run prints. You now know what an open message, a sealed message and a wrong unlock word look like.
 
@@ -507,9 +512,41 @@ int size = askInt("Dump records", "Record size in bytes?");    // Cancel stops t
 
 To check it, run it on a table from Day 4 with the record size you found there. Each line should start where your structure did. Columns that change in a pattern are often an index or a length; columns that look random are often encoded text.
 
+## Checkpoint (45 min)
+
+The checkpoint is blind: no walkthrough and no source. It checks that you can run the five steps yourself on a program you have not seen. Work alone, and write notes a colleague could follow.
+
+**The task.** `bin/day5/checkpoint.exe` asks for a passphrase. Find the passphrase it accepts, with a script that reads it from the program.
+
+**Why a script.** The answer depends on every record in a table, not on one. Decoding them all by hand would take about an hour, and one slip gives a wrong character. Decode two or three by hand, then let the script do the rest.
+
+**Set up (5 min).** Run `checkpoint.exe` once with any word and note what it prints. Import it into your `day5` folder and analyze it. Start a new page of notes from the [analysis notes template](templates/analysis-notes.md), as on Day 0.
+
+**Step 1, by hand (15 min).** Find the code that decides whether the passphrase is right, and the table it reads. Work out one record's layout and what the check does with each field. Decode the first two or three records by hand.
+
+The questions from Module 4, Part A still apply. Where does an index become an address? Which byte is tested, and which fields are combined with what you typed?
+
+**Write down:** where the check is, the table's address and block, the record size and count, each field's offset and use, and your decoded records.
+
+**Step 2, plan in words (5 min).** Write one line per step, as in [A good plan in words](#how-each-exercise-works). Then open `Day5Checkpoint.java` in `lab/day5/scripts` and compare your plan with its six `TODO` comments. Each `TODO` names the API calls to look up.
+
+**Steps 3 and 4, fill and check one TODO at a time (15 min).** Run the script after each `TODO` and compare its output with your notes:
+
+- **TODO 1:** nothing printed yet. The constants should read like your layout notes.
+- **TODO 2 and 3:** the addresses of `main` and of the check match your notes.
+- **TODO 4:** the table address matches your notes. More than one instruction may point into the table, so make sure you get its start.
+- **TODO 5:** one line per record. The records you decoded by hand come out the same.
+- **TODO 6:** a passphrase. Enter it in `checkpoint.exe`; the program tells you if it is right.
+
+If a step goes wrong, [When a script goes wrong](#when-a-script-goes-wrong) covers the usual causes. Every tool and API call you need was used earlier today.
+
+**Step 5, explain it (5 min).** Comment every line you wrote. Then write a half-page in your notes: the question, where the check is, the layout, the encoding and how you undo it, your plan, and the answer.
+
+**Done when** the program accepts your passphrase, and your notes would let someone else repeat the work. Then compare with [checkpoint.md](../lab/solutions/day5/checkpoint.md) and [Day5Checkpoint.java](../lab/solutions/day5/Day5Checkpoint.java) in the solutions.
+
 ## Beyond this lesson
 
-These challenges are extra credit, outside the 7 hours. Each one grows a script from today or applies the same method to a new question. Do them in any order.
+These challenges are extra credit, outside the 7.5 hours. Each one grows a script from today or applies the same method to a new question. Do them in any order.
 
 Use the same five steps as in class. There is no skeleton, so your plan in words is your skeleton. Write its lines as `//` comments in a new file first, then fill them in.
 
@@ -575,11 +612,12 @@ Try each exercise for at least 15 minutes before you look here. Addresses and fu
 | 5A check | Each record has its own key; message 1's is the first byte of the table | Message 1 is "Keeper's log, week one. Lamp lit at dusk." |
 | 5B | Only one `LEA` in `main` points into `.data`; a `MOV` from `.data` loads an import pointer | Messages 5, 9, 12, 15 and 18 are sealed. Compare with `lab/solutions/day5/Day5DecodeMessages.java` |
 | 5C | Message 5 names the old word; message 18 says the word ends in a number | Message 15: the unlock word is `brass-lantern-7`. Message 5's `tin-beacon-3` is retired and gives "Wrong unlock word." |
+| Checkpoint | Decode by hand until you can say which records the check skips, and in what order it uses the rest | The passphrase, a model write-up and the common mistakes are in `lab/solutions/day5/checkpoint.md` |
 
 ## Wrap-up and Day 6
 
 Today's Ghidra features are in the running reference: [ghidra-reference.md](ghidra-reference.md) under Scripting. It lists the Script Manager tasks and every API call you used.
 
-Keep your four scripts. Day 10 builds on them: scripts that rename, comment and create types, run headless with `analyzeHeadless`.
+Keep your five scripts. Day 10 builds on them: scripts that rename, comment and create types, run headless with `analyzeHeadless`.
 
 **Day 6 preview:** C++. You'll reverse a small class hierarchy with virtual functions, `std::string`, `std::vector` and an exception. You'll follow the hidden `this` pointer, rebuild vtables as structures, and read RTTI and mangled names.
