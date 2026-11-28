@@ -6,6 +6,7 @@ Read each primer before the first day that needs it. They are also worth rereadi
 
 | Primer | What it covers | Read before | Time |
 | --- | --- | --- | --- |
+| [How to approach an unknown program](00-approach.md) | Triage (file type, sections, imports, strings, packing), hypotheses, static versus dynamic, naming, notes | [Day 0](../day0-training.md) | 25 min |
 | [Numbers and data](01-numbers-and-data.md) | Hex and binary, bytes and sizes, little-endian, signed values, text, XOR | [Day 1](../day1-training.md) | 25 min |
 | [Registers and flags](02-registers-and-flags.md) | The x86-64 registers and sub-registers, RIP, flags and conditional jumps | [Day 1](../day1-training.md) | 25 min |
 | [Reading assembly](03-reading-assembly.md) | Intel syntax, memory operands, the core instructions, common patterns | [Day 1](../day1-training.md) | 35 min |
