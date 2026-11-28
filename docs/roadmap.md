@@ -135,7 +135,7 @@ Work on the kit that supports the course, in priority order. Items marked done c
 
 | Item | Needed by | Status |
 | --- | --- | --- |
-| Windows CI: lint, build, compile, smoke-test, re-run, relocation | M0 | In progress (headless Ghidra still failing) |
+| Windows CI: lint, build, compile, smoke-test, re-run, relocation, headless Ghidra | M0 | Done |
 | `lab/Makefile` and `Devkit.cmd` opening in the repo's `lab` folder | M0 | Done (replaces the planned `lab/build.cmd`) |
 | Version-aware updates: `data\versions.json`, `-Update`, `-Check` | M2 | Not started |
 | Check the Day 1 guide's menus and shortcuts against Ghidra 12.2 and x64dbg 2026.05 | M2 | Not started |
