@@ -19,6 +19,10 @@ Day 3 follows Day 2's work on optimized code and the stack. Today you learn to r
 - The course repo. Today's programs are in `lab/day3`.
 - Day 1's skills: strings and references, renaming, breakpoints and stepping. Day 2's work on stack frames helps with Module 3.
 
+**Before you start**
+
+Read [How C control flow compiles](primers/06-control-flow.md): if-else, the three loop shapes, switch and jump tables, and recursion. Refresh the jump table in [Registers and flags](primers/02-registers-and-flags.md) and where globals live in [A program in memory](primers/04-memory-layout.md).
+
 **Lab rules**
 
 - Work in your VM, and take a snapshot before you start.

@@ -18,7 +18,17 @@ By the end of Day 1 you will find, understand and bypass a license check in a Wi
 
 - The portable kit built by `Build-PortableRE.ps1`: Ghidra, its JDK, x64dbg, and the w64devkit GCC toolchain with `make`.
 - A copy of the course repo. Its `lab/day1` folder holds today's three practice programs, and `lab/Makefile` builds them.
-- Basic C. No assembly is needed in advance; you learn what you need as you go.
+- Basic C. No assembly is needed in advance: the primers below teach what you need.
+
+**Before you start**
+
+Read these primers first, ideally the day before. They take about 2 hours together, and every exercise today assumes them.
+
+- [Numbers and data](primers/01-numbers-and-data.md): hex, bytes, little-endian, signed values, XOR.
+- [Registers and flags](primers/02-registers-and-flags.md): RAX to R15, RIP, and the flags that decide a jump.
+- [Reading assembly](primers/03-reading-assembly.md): Intel syntax, memory operands and the instructions you will see today.
+- [A program in memory](primers/04-memory-layout.md): sections, the stack and the heap, and why x64dbg's addresses differ from Ghidra's.
+- [The stack and the calling convention](primers/05-stack-and-calls.md): read up to the calling convention; Day 2 covers the rest.
 
 **Lab rules**
 

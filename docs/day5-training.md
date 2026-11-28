@@ -23,6 +23,10 @@ Day 5 closes the first block. For four days you have found things by hand: strin
 - Day 1's skills: strings, references and renaming. Day 4's struct layouts help with the capstone.
 - No Java experience is needed. You need variables, `if`, loops and method calls; the guide explains anything beyond that.
 
+**Before you start**
+
+If you haven't written Java before, read [Just enough Java for Ghidra scripts](primers/08-java-for-ghidra.md). It covers what today's scripts need and nothing more. The exercises also lean on [Reading assembly](primers/03-reading-assembly.md) and [The stack and the calling convention](primers/05-stack-and-calls.md).
+
 **Lab rules**
 
 The Day 1 rules still apply. Work in a VM with a snapshot, analyze only the practice programs, and keep notes. Today your notes also hold your finished scripts, with a comment on every line.
