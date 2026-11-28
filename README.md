@@ -17,7 +17,7 @@ Nothing is installed on the system. You can move the folder to another drive or 
 The repo also has:
 
 - `lab/`: the practice programs, one folder per course day (`lab/day1/`: plain-text password, name-based serial, XOR-hidden key with an anti-debugging check). Spoilers and answer checks are in `lab/solutions/dayN/`.
-- `docs/`: the course. Day guides ([Day 1](docs/day1-training.md) to [Day 5](docs/day5-training.md) so far), [primers](docs/primers/README.md) on the background they assume (assembly, registers, the stack, memory, Java), running [Ghidra](docs/ghidra-reference.md) and [x64dbg](docs/x64dbg-reference.md) references, and the [roadmap](docs/roadmap.md) for the full 15-day course.
+- `docs/`: the course. Day guides ([Day 0](docs/day0-training.md), setup and method, then [Day 1](docs/day1-training.md) to [Day 5](docs/day5-training.md) so far, each ending with a blind checkpoint), [primers](docs/primers/README.md) on the background they assume (assembly, registers, the stack, memory, Java), running [Ghidra](docs/ghidra-reference.md) and [x64dbg](docs/x64dbg-reference.md) references, and the [roadmap](docs/roadmap.md) for the full 15-day course.
 
 Requires Windows with PowerShell 5.1 or later. Use a VM for practice.
 

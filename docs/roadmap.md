@@ -1,10 +1,10 @@
 # Development roadmap
 
-The course runs 15 days. By the end, a student can take an unfamiliar Windows x64 program, work out what it does and how, defeat common protections, and write it up. They also know Ghidra and x64dbg well beyond the basics, and can write Ghidra scripts in Java that they understand line by line.
+The course runs 16 days: a half-length Day 0 for setup and method, then Days 1 to 15. By the end, a student can take an unfamiliar Windows x64 program, work out what it does and how, defeat common protections, and write it up. They also know Ghidra and x64dbg well beyond the basics, and can write Ghidra scripts in Java that they understand line by line.
 
 Each day follows Day 1's format: about 7 hours, roughly half hands-on, on practice programs built from source in `lab/` so the answers are known and checked by CI.
 
-Status: Days 1 to 5 are written ([day1-training.md](day1-training.md), [day2-training.md](day2-training.md), [day3-training.md](day3-training.md), [day4-training.md](day4-training.md), [day5-training.md](day5-training.md)). Days 6 to 15 are planned below.
+Status: Days 0 to 5 are written ([day0-training.md](day0-training.md), [day1-training.md](day1-training.md), [day2-training.md](day2-training.md), [day3-training.md](day3-training.md), [day4-training.md](day4-training.md), [day5-training.md](day5-training.md)). Days 6 to 15 are planned below.
 
 ## Where the course ends up
 
@@ -24,15 +24,16 @@ By the end of Day 15 a student can:
 
 ## Course plan
 
-The 15 days fall into three five-day blocks. Each block ends with a day that consolidates it (scripting on Days 5 and 10, the capstone on Day 15).
+Day 0 sets up the kit and teaches a method for approaching an unknown program. Days 1 to 15 fall into three five-day blocks. Each block ends with a day that consolidates it (scripting on Days 5 and 10, the capstone on Day 15). Every day from Day 0 on ends with a blind checkpoint: a program whose source is only in `lab/solutions/`.
 
 | Day | Theme | Practice programs (`lab/dayN/`) | Skills added |
 | --- | --- | --- | --- |
+| 0 | Setup and method (done, about 3.5 hours) | `sample` (worked triage) | VM and kit setup, reading primers 00 to 05, triage, hypotheses, naming, notes |
 | **Block 1** | **Reading code** | | |
 | 1 | Foundations (done) | ex1 password, ex2 serial, ex3 XOR key + `IsDebuggerPresent` | Ghidra and x64dbg basics, strings and xrefs, breakpoints, flipping flags, patching |
-| 2 | Optimized code and the stack | Day 1 programs at `-O2`; a program with deep call chains | Stack frames, the x64 calling convention in depth, inlining, tail calls, spotting the same code at `-O0` and `-O2` |
-| 3 | Control flow and data | A menu program with a `switch`, loops of each kind, recursion, globals and string handling | Jump tables, loop shapes, recursion, global data, reading assembly without the decompiler |
-| 4 | Data structures | An inventory program with structs, arrays of structs and a linked list | Struct recovery, pointers to pointers, arrays versus structs, sharing types between programs |
+| 2 | Optimized code and the stack | Day 1 programs at `-O2`; a program with deep call chains | Stack frames, the x64 calling convention in depth, inlining, tail calls, spotting the same code at `-O0` and `-O2`, floating-point code (XMM registers, float arguments), stripped versus unstripped builds and library code |
+| 3 | Control flow and data | A menu program with a `switch`, loops of each kind, recursion, globals and string handling | Jump tables, loop shapes, recursion, global data, reading assembly without the decompiler, wide (UTF-16) strings and the A/W APIs, command-line arguments |
+| 4 | Data structures | An inventory program with structs, arrays of structs and a linked list | Struct recovery, pointers to pointers, arrays versus structs, sharing types between programs, bit flags, enums and equates |
 | 5 | Ghidra scripting I (guided, Java) | Days 1 to 4 programs | The Script Manager, the `GhidraScript` API, walking functions, strings and references; a script that decodes ex3's key |
 | **Block 2** | **Programs and Windows** | | |
 | 6 | C++ reversing | A small class hierarchy with virtual functions, `std::string` and `std::vector`, an exception | `this` pointers, vtables, RTTI, constructors and destructors, name demangling, templates |
@@ -67,6 +68,7 @@ The day guides teach tools and techniques; the [primers](primers/README.md) teac
 
 | Primer | Read before | Status |
 | --- | --- | --- |
+| 0. How to approach an unknown program | Day 0 | Written |
 | 1. Numbers and data | Day 1 | Written |
 | 2. Registers and flags | Day 1 | Written |
 | 3. Reading assembly | Day 1 | Written |
@@ -89,17 +91,18 @@ Each day teaches the tool features its exercises need, so every feature is learn
 
 | Day | Ghidra | x64dbg |
 | --- | --- | --- |
+| 0 | Import options, Memory Map and section permissions, Symbol Tree imports, Defined Strings for triage | String references and breaking on imports for triage |
 | 1 (done) | Projects, import, auto-analysis, Listing, Decompiler, Symbol Tree, Defined Strings, references, rename, retype, comments, Function Graph, Memory Map and image base | CPU view, F2 breakpoints, stepping, registers and flags, dump and stack, string references, editing instructions, Patch File |
-| 2 | Analyzer options and re-analysis, function signatures and calling conventions, Version Tracking (match `-O0` to `-O2`) | Call stack, run to user code, labels and comments |
-| 3 | Switch recovery, Function Call Trees, bookmarks, the Listing's field options | Conditional breakpoints, the command line and expressions, graph view |
-| 4 | Data Type Manager, Structure Editor, auto-create structure, type archives (`.gdt`) | Watch view, following structures in the dump |
+| 2 | Analyzer options and re-analysis, function signatures and calling conventions, Version Tracking (match `-O0` to `-O2`), Function ID and unstripped builds | Call stack, run to user code, labels and comments, the FPU/XMM register view |
+| 3 | Switch recovery, Function Call Trees, bookmarks, the Listing's field options, unicode strings | Conditional breakpoints, the command line and expressions, graph view, changing the program's command line, the dump as Unicode |
+| 4 | Data Type Manager, Structure Editor, auto-create structure, type archives (`.gdt`), enums and equates | Watch view, following structures in the dump, watching a flag bit |
 | 5 | Script Manager, the script editor, the `GhidraScript` API, the console | |
 | 6 | C++ class recovery, vtables as structures, the RTTI analyzer, demangler options | Following `this` through calls |
 | 7 | Program header and PE structures, sections, Function ID, loading PDBs | Memory map, modules and symbols, TLS callbacks, breaking before `main` |
 | 8 | Imports and exports, linked programs (EXE and DLL together), external locations; 32-bit (x86:LE:32) analysis and calling conventions | Breaking on DLL load, symbols for loaded DLLs; x32dbg for 32-bit programs |
 | 9 | | Hardware, memory and logging breakpoints, trace into and trace over, threads, attaching, x64dbg scripts |
 | 10 | Scripts that create types, rename and comment; `analyzeHeadless` with a script | |
-| 11 | Searching memory, scalars and instruction patterns, equates and enums | Logging breakpoints to record a hash as it is computed |
+| 11 | Searching memory, scalars and instruction patterns, equates and enums for crypto constants (introduced on Day 4) | Logging breakpoints to record a hash as it is computed |
 | 12 | Data types for a file format, applying structures to buffers | Breakpoints on file and socket APIs, memory breakpoints on a buffer |
 | 13 | | ScyllaHide, exception handling and SEH, conditional tracing |
 | 14 | String-decryption scripts that patch the listing, importing a memory dump, overlays and manual memory blocks | Finding the OEP with memory and hardware breakpoints, Scylla dump and import fixing |
@@ -112,6 +115,7 @@ Each day ships as one milestone. A day is done when:
 - its guide is in `docs/dayN-training.md`, with an answer key
 - its guide lists the primers it relies on under "Before you start", and any new background it needs has a primer in `docs/primers/`
 - its programs are in `lab/dayN/`, and `make` builds them
+- it ends with a blind checkpoint: a program whose source is only in `lab/solutions/dayN/`, with its answer and a model write-up in `lab/solutions/dayN/checkpoint.md`
 - CI builds them on Windows and checks each one with its known answers
 - its script skeletons (if any) are in `lab/dayN/scripts/`, and CI runs the matching solutions headless
 - spoilers (keygens, decoders, solution scripts) are in `lab/solutions/`
@@ -120,7 +124,8 @@ Each day ships as one milestone. A day is done when:
 
 | Milestone | Delivers | Depends on |
 | --- | --- | --- |
-| M0: Kit and CI (in progress) | Portable kit, Windows CI, Makefile, Day 1 guide | |
+| M0: Kit and CI (done) | Portable kit, Windows CI, Makefile, Day 1 guide | |
+| M0.5: Day 0 and checkpoints (done) | Day 0 (setup and method, primer 00, notes template), a blind checkpoint for each of Days 0 to 5, and the gap topics: floats and stripping (Day 2), wide strings and `argv` (Day 3), flags and enums (Day 4) | M5 |
 | M1: Lab layout and references (done) | `lab/day1/` folders, a top-level Makefile that builds every day, CI testing each day; the Ghidra and x64dbg references started from Day 1's features | M0 |
 | M2 to M4: Days 2 to 4 (done) | Guides and programs for optimized code, control flow, data structures | M1 |
 | M5: Day 5 (done) | First guided scripting day: skeletons, solutions, headless script runs in CI | M4 |
@@ -153,7 +158,9 @@ Work on the kit that supports the course, in priority order. Items marked done c
 
 | Decision | Choice |
 | --- | --- |
-| Course length | 15 days, about 7 hours each |
+| Course length | 16 days: Day 0 (about 3.5 hours), then Days 1 to 15 (about 7 to 7.5 hours each) |
+| Checkpoints | Every day ends with a blind checkpoint, about 45 minutes |
+| 32-bit x86 | Folded into Day 8, with the kit's `w64devkit32` toolchain and x32dbg |
 | Ghidra scripting language | Java, taught step by step (see How scripting is taught) |
 | Packing on Day 14 | Both UPX and a small custom packer written for the course |
 | Helper language (keygens, decoders, parsers) | Python; the kit adds a portable Python when the first day that needs it is built |
