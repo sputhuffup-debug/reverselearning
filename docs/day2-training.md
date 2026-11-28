@@ -445,8 +445,8 @@ A run of near-identical blocks with offsets `+0x1`, `+0x2`, `+0x3` is an unrolle
 
 1. Open `ex1o2.exe` in the CodeBrowser. Open Day 1's `ex1.exe` in the same CodeBrowser with File → Open. Each program gets its own tab above the Listing.
 2. Find `main` in `ex1o2` from the "Access granted!" string, as on Day 1, and rename it.
-3. Compare the two `main` functions in the Listing. Does the `-O2` one start with `push rbp`? Where do the input buffer and the `strcmp` arguments come from?
-4. Compare the decompiler output. It should look almost the same, even though the instructions differ.
+3. Compare the two `main` functions in the Listing. How does the `-O2` one set up its frame: does it start with `push rbp`, and does it realign the stack with `and rsp, -16`? Is `strcmp` still called? At `-O2`, GCC may replace it with its own compares against large constants loaded with `movabs`. If you see those, read the constants as text: they are little-endian ([Little-endian byte order](primers/01-numbers-and-data.md#little-endian-byte-order)).
+4. Compare the decompiler output. If `strcmp` is still called, it looks almost the same even though the instructions differ. If GCC inlined the compare, the decompiler shows the comparison as numbers instead of a string; note which you got.
 5. Open Analysis → Auto Analyze for `ex1o2` and read the list of analyzers. Find **Decompiler Parameter ID**; it uses the decompiler to work out each function's parameters. If it is not ticked, tick it and click Analyze.
 
 **Write down:** the number of instructions in each `main`, and one difference you can see in the Listing but not in the decompiler.
@@ -903,7 +903,7 @@ Try each exercise for at least 15 minutes before you look here. Addresses and ex
 
 | Exercise | Hint | Answer |
 | --- | --- | --- |
-| 1.1 | Look at the first few instructions of each `main` | `ex1o2`'s `main` has no RBP frame and fewer instructions; the decompiler output is nearly the same; the password is still `hunter2-ghidra` |
+| 1.1 | Look at the first few instructions of each `main`, and look for `movabs` | It depends on the compiler build. `ex1o2`'s `main` has fewer instructions; it may still use RBP, because GCC realigns `main`'s stack with `and rsp, -16`. GCC may inline `strcmp` as 8-byte compares against `movabs` constants that hold the password in little-endian chunks; then the decompiler shows numbers, not a string. Either way the password is still `hunter2-ghidra` |
 | 1.2 | Search `main` for `shl` and `sub`, or `imul` | `make_serial` was inlined into `main`; `h * 31` is done as `(h << 5) - h` or with `imul`; the keygen still works |
 | 1.3 | The XOR is no longer in a function of its own | `decode` was inlined into `main`; the key is decoded into a buffer on `main`'s stack; it is still `R3v3rs1ng_D4y1` |
 | 1.4 | Reference correlators only use matches you have accepted | Exact bytes match the runtime functions; Data Reference Match pairs `main` through its strings; `make_serial` has no partner because it no longer exists in `ex2o2` |
