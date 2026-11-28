@@ -488,8 +488,8 @@ x64dbg can also hide itself from this check: Debug → Advanced → Hide debugge
 
 ### Part C: Patch the program (30 min)
 
-1. Find the conditional jump after the `IsDebuggerPresent` call. Select it, press Space and change it so the program always continues; usually that means `nop` with "Fill with NOPs" ticked, or reversing the jump.
-2. Do the same to the jump after `strcmp`, so the program always reaches "License OK. Welcome!"
+1. Find the conditional jump after the `IsDebuggerPresent` call and work out where it goes. Then apply the rule below: select it, press Space and rewrite it so the program never reaches "Debugger detected", whether or not a debugger is attached.
+2. Do the same for the jump after `strcmp`, so the program always reaches "License OK. Welcome!" Check where that jump goes too; the two jumps don't need the same fix.
 3. Save it with File → Patch file (Ctrl+P) → Patch File, as `ex3_patched.exe`. Never overwrite the original.
 4. Close x64dbg, run `ex3_patched.exe` normally and enter any key. It should accept it.
 
@@ -584,7 +584,7 @@ Try each exercise for at least 15 minutes before you look here. Addresses depend
 | 2.2 | Break on the instruction straight after the `call` | RAX holds the serial; for "alice" it's `0xCFB71247` |
 | 3A | Look for `^ 0x42` in the decode loop | Each of the 14 bytes is XORed with `0x42`; the key is `R3v3rs1ng_D4y1` |
 | 3B | `IsDebuggerPresent` returns 1 in RAX when a debugger is attached | Setting RAX to 0 after the call skips the exit; the decoded key is in the second `strcmp` argument (RDX) |
-| 3C | Patch the jumps, not the calls | NOP the jump that leads to "Debugger detected" and the jump that leads to "Bad license key"; saving with Patch File keeps the original intact |
+| 3C | Patch the jumps, not the calls. Ask where each jump goes | The jump after `IsDebuggerPresent` (`je`/`jz`) skips the "Debugger detected" exit, so its target is the path you want: change it to an unconditional `jmp`. NOPing it, or reversing it, sends every run into the exit. The jump after `strcmp` (`jne`/`jnz`) leads to "Bad license key", so NOP it. Saving with Patch File keeps the original intact |
 
 A keygen for Exercise 1.2 (also in [lab/solutions/day1/keygen_ex2.py](../lab/solutions/day1/keygen_ex2.py)):
 
