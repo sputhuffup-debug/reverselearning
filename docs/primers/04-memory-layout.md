@@ -1,6 +1,6 @@
 # A program in memory
 
-This primer shows how Windows lays out a 64-bit program once it is loaded: its sections, the heap, the stack and the DLLs around it. [Day 1](../day1-training.md) relies on it when you line up addresses between Ghidra and x64dbg, and [Day 3](../day3-training.md) when you look for global data. Reading time: about 20 minutes.
+This primer shows how Windows lays out a 64-bit program once it is loaded. It covers sections, the heap, the stack and DLLs. [Day 1](../day1-training.md) relies on it when you line up addresses between Ghidra and x64dbg, and [Day 3](../day3-training.md) when you look for global data. Reading time: about 20 minutes.
 
 ## From file to memory
 
@@ -150,7 +150,7 @@ The addresses and offsets in the table are made up; yours will differ. A **stati
 ## In x64dbg
 
 - The **Memory Map** tab lists every region of the process: the image and its sections, each DLL, the heap and the thread stacks.
-- Its columns give the address, the size, what the region is (the Info column), and its protection, such as `ER---` for code and `-RW--` for data.
+- Its columns give each region's address, size and contents (the Info column). The Protection column shows `ER---` for code and `-RW--` for data.
 - Right-click a region → Follow in Dump to see its bytes. The base of your program is the first row with its name.
 - The **Symbols** tab lists loaded modules with their bases, which Day 1 uses to line up addresses.
 

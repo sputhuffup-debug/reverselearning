@@ -100,7 +100,7 @@ The list of variables sits at the top of each function in the Listing. In instru
 
 ## The Windows x64 calling convention
 
-A **calling convention** is the set of rules a caller and a callee agree on: where arguments go, where the result comes back, and which registers survive a call. All 64-bit Windows code uses one convention, so these rules hold for your code, MinGW's runtime and Windows DLLs alike.
+A **calling convention** is the set of rules a caller and a callee agree on. It says where arguments go, where the result comes back, and which registers survive a call. All 64-bit Windows code uses one convention, so these rules hold for your code, MinGW's runtime and Windows DLLs alike.
 
 **Arguments.** The first four integer or pointer arguments go in registers, by position:
 
@@ -295,8 +295,8 @@ On any `call`, read RCX, RDX, R8 and R9 for the arguments, and step over it to r
 <details><summary>Answers</summary>
 
 1. `0x5FF8F8`. `call` pushes 8 bytes: the return address, the address of the instruction after the `call`.
-2. `push rbp` saves the caller's RBP; `mov rbp, rsp` makes RBP point at this frame; `sub rsp, N` reserves space for locals and for the calls the function makes.
-3. `a` in RCX, `b` in RDX, `c` in R8, `d` in R9 (or their 32-bit halves), and `e` on the stack at `[rsp+0x20]` at the `call`.
+2. `push rbp` saves the caller's RBP. `mov rbp, rsp` makes RBP point at this frame. `sub rsp, N` reserves space for locals and for the calls the function makes.
+3. `a` in RCX, `b` in RDX, `c` in R8 and `d` in R9, or their 32-bit halves. `e` goes on the stack, at `[rsp+0x20]` at the `call`.
 4. 32 bytes just above the return address, reserved by the caller for every call. The callee may store its four register arguments there.
 5. `Stack[-0x28]` is measured from RSP at entry. RBP is 8 below that, so it's `[rbp-0x20]`.
 6. RCX is volatile, so `puts` may change it. Keep the value in a non-volatile register such as RBX, or on the stack.
