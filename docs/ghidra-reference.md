@@ -116,6 +116,10 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Copy a type into an archive | Drag it from the program's archive onto the `.gdt` archive, then right-click the archive → Save Archive. | | Day 4 |
 | Use an archive in another program | Data Type Manager: arrow menu → Open File Archive, pick the `.gdt`, then apply its types as usual. | | Day 4 |
 | Send a changed type back to its archive | Right-click the type in the program's archive → Commit to Archive, then save the archive. | | Day 4 |
+| Create an enum | Data Type Manager: right-click the program's archive → New → Enum. Add one row per name and value. Set its size to the field's size: 1 for a byte of flags, 4 for a C enum. | | Day 4 |
+| Show names instead of numbers | Apply the enum like any type: Ctrl+L on a variable in the Decompiler, or type its name in a Structure Editor row. | Ctrl+L | Day 4 |
+| Name a constant (equate) | In the Listing, put the cursor on the constant and press `E` (Set Equate), then type a name. Choose whether it applies to this place only or to more uses. | `E` | Day 4 |
+| See a constant as text | Right-click the constant in the Listing and choose a character form from the conversion options. | | Day 4 |
 
 ## Scripting
 

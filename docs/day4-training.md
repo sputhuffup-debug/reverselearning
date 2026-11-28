@@ -4,7 +4,7 @@ Nov 27, 2026
 
 ## Overview
 
-Day 4 follows Day 3. Until now you have read code that works on single values. Today you read code that works on records: structs, arrays of structs, and a linked list built at runtime. You will rebuild each record as a type in Ghidra and share one type between two programs. Then you follow the same records through memory in x64dbg.
+Day 4 follows Day 3. Until now you have read code that works on single values. Today you read code that works on records: structs, arrays of structs, and a linked list built at runtime. You will rebuild each record as a type in Ghidra and share one type between two programs. You follow the same records through memory in x64dbg, then give names to the bit flags and enums inside them.
 
 **Why this matters.** Real programs keep almost everything in records: file headers, packets, settings, C++ objects. A stripped program shows them only as offsets like `+0x18`. Once you rebuild a record as a type, every function that uses it reads better. Days 6, 7 and 12 build on this skill directly.
 
@@ -16,18 +16,22 @@ Day 4 follows Day 3. Until now you have read code that works on single values. T
 4. Read pointers to pointers: a list head passed by address, and an array of pointers.
 5. Save a type to a type archive (`.gdt`) and apply it in a second program.
 6. Watch struct fields in x64dbg and follow a struct and a linked list in the dump.
+7. Read bit flags, packed fields and enums, and name them in Ghidra with enums and equates.
+8. Solve an unseen program on your own in the checkpoint.
 
 **What you need**
 
 - The portable kit built by `Build-PortableRE.ps1`, as on Day 1.
-- The course repo. Its `lab/day4` folder holds today's three practice programs.
+- The course repo. Its `lab/day4` folder holds today's four practice programs; the checkpoint program is built with them.
 - Day 1's skills: finding `main` from strings, renaming, retyping, breakpoints, and lining up addresses in both tools.
 
 **Before you start**
 
-Read [Data in memory](primers/07-data-in-memory.md): arrays, pointers, structs, alignment and linked lists. Refresh the type sizes in [Numbers and data](primers/01-numbers-and-data.md) and the heap in [A program in memory](primers/04-memory-layout.md).
+Read [Data in memory](primers/07-data-in-memory.md): arrays, pointers, structs, alignment and linked lists. Its section [Bit flags and enums](primers/07-data-in-memory.md#bit-flags-and-enums) is the background for Module 5. Refresh the type sizes in [Numbers and data](primers/01-numbers-and-data.md) and the heap in [A program in memory](primers/04-memory-layout.md).
 
 The guide links to the exact primer section wherever a concept comes up. Follow a link when a step stops making sense.
+
+The checkpoint at the end of the day uses the method from [The approach](primers/00-approach.md) and the [analysis notes template](templates/analysis-notes.md). Have a copy of the template ready.
 
 **Lab rules**
 
@@ -37,26 +41,28 @@ A table works well: one row per field with offset, size, type, name and where yo
 
 ## Schedule
 
-The day runs about 7 hours with breaks, and roughly half of it is hands-on exercise time. Module 1 includes 30 minutes of worked examples, so the two tours are a little shorter than on other days.
+The day runs about 7.5 hours with breaks, and roughly half of it is hands-on exercise time. Module 1 includes 30 minutes of worked examples, so the two tours are a little shorter than on other days.
 
 | Time | Block | What you do |
 | --- | --- | --- |
-| 0:00–0:20 | Module 0: Setup | Build the three practice programs and run each once |
-| 0:20–1:20 | Module 1: Structs in memory | Offsets, alignment, padding, arrays of structs, pointers to pointers; Exercise 1.1 on paper; worked examples |
-| 1:20–1:45 | Module 2A: Ghidra's type tools | Data Type Manager, Structure Editor, auto-create, type archives |
-| 1:45–2:30 | Exercise 2.1 | Build `ex1`'s part record by hand and apply it |
-| 2:30–2:45 | Break |  |
-| 2:45–3:30 | Exercise 2.2 | Auto-create `ex2`'s list node and type the list head |
-| 3:30–3:55 | Module 3A: Structs in x64dbg | The watch view, expressions, following pointers in the dump |
-| 3:55–4:40 | Exercise 3.1–3.2 | Watch `ex1`'s fields; walk `ex2`'s list in the dump |
-| 4:40–5:25 | Lunch |  |
-| 5:25–6:40 | Module 4: Capstone | Share the part record with `ex3` through a `.gdt` archive and solve it |
-| 6:40–6:55 | Review | Go over the answer key and compare your structs with the solution |
-| 6:55–7:05 | Wrap-up | Reference updates and the plan for Day 5 |
+| 0:00–0:15 | Module 0: Setup | Build the practice programs and run `ex1` to `ex4` once |
+| 0:15–1:15 | Module 1: Structs in memory | Offsets, alignment, padding, arrays of structs, pointers to pointers; Exercise 1.1 on paper; worked examples |
+| 1:15–1:40 | Module 2A: Ghidra's type tools | Data Type Manager, Structure Editor, auto-create, type archives |
+| 1:40–2:25 | Exercise 2.1 | Build `ex1`'s part record by hand and apply it |
+| 2:25–2:40 | Break |  |
+| 2:40–3:25 | Exercise 2.2 | Auto-create `ex2`'s list node and type the list head |
+| 3:25–3:45 | Module 3A: Structs in x64dbg | The watch view, expressions, following pointers in the dump |
+| 3:45–4:10 | Exercise 3.1 | Walk `ex2`'s list in the dump |
+| 4:10–4:55 | Lunch |  |
+| 4:55–5:45 | Module 4: Capstone | Share the part record with `ex3` through a `.gdt` archive and solve it |
+| 5:45–6:30 | Module 5: Flags and enums | Bit operations, packed fields, enums; Ghidra enums and equates; Exercise 5.1 on `ex4` |
+| 6:30–7:15 | Checkpoint | Solve `checkpoint.exe` without its source, using the Day 0 method |
+| 7:15–7:20 | Review | Compare your structs and your checkpoint notes with the solutions |
+| 7:20–7:25 | Wrap-up | Reference updates and the plan for Day 5 |
 
-The extra-credit challenges in [Beyond this lesson](#beyond-this-lesson) are outside the 7 hours. Do them after the day, or the evening before Day 5.
+The extra-credit challenges in [Beyond this lesson](#beyond-this-lesson) are outside the 7.5 hours. Do them after the day, or the evening before Day 5. Two former exercises moved there to make room for Module 5 and the checkpoint: watching `ex1`'s fields in x64dbg, and checking `ex3` in x64dbg.
 
-## Module 0: Build the practice programs (20 min)
+## Module 0: Build the practice programs (15 min)
 
 Today's programs model a small parts warehouse. Their sources are in the repo's `lab/day4` folder and linked below. As on Day 1, don't reread a source once it's compiled.
 
@@ -66,17 +72,21 @@ Today's programs model a small parts warehouse. Their sources are in the repo's 
 
 [**ex3\_restock.c**](../lab/day4/ex3_restock.c): a second warehouse that uses the same part record as `ex1`, reached through an array of pointers
 
+[**ex4\_flags.c**](../lab/day4/ex4_flags.c): a staff badge that packs bit flags, an enum and other fields into one access code
+
+The build also makes `checkpoint.exe`, the program for the end-of-day [Checkpoint](#checkpoint). Its source is in the solutions folder. Don't open it, and don't run the program until the checkpoint.
+
 **Compile** with `make`. Open `RE-Portable\Devkit.cmd`; its shell starts in the repo's `lab` folder. Then run:
 
 ```bash
-make day4     # builds bin/day4/ex1.exe, ex2.exe and ex3.exe
+make day4     # builds bin/day4/ex1.exe to ex4.exe, and checkpoint.exe
 ```
 
 The executables go into `bin/day4`. The build uses `-O0 -s` as on Day 1, so the code stays close to the source and the names are gone.
 
 `-O0` matters today. Each field access becomes its own load or store with a plain offset, and each pointer is saved to the stack between uses. That makes the offsets easy to collect; [What -O2 changes](primers/06-control-flow.md#what--o2-changes) explains why optimized code is harder.
 
-Run each program once with a wrong answer. `ex1` and `ex3` ask for a part number and a quantity; `ex2` asks for a pick code. Then close the `.c` files.
+Run `ex1` to `ex4` once each with a wrong answer. `ex1` and `ex3` ask for a part number and a quantity, `ex2` for a pick code, and `ex4` for an access code in hex. Then close the `.c` files.
 
 ## Module 1: Structs in memory (1 h)
 
@@ -338,7 +348,7 @@ Recovered types are guesses until the code agrees with them. These are the commo
 3. Read its loop. Note the multiplier on the index and the size of the value it compares with your number. That multiplier is the size of one record.
    At `-O0` the multiplier is spread across several `sal` and `add` instructions. Write each step down, such as "times 3, then shift left by 4", and multiply them out. [Arrays of structs](primers/07-data-in-memory.md#arrays-of-structs) shows the shapes to expect.
 4. Back in `main`, list every offset read through the pointer `find_item` returns. Note the size of each read and how the value is used. It may be compared, printed with `%s` or `%c`, masked with `&`, or followed as a pointer.
-   The use tells you the type. `%s` means a `char` array or `char *`. A value read with `qword ptr` and then used as an address is a pointer. A field masked with `&` holds bit flags.
+   The use tells you the type. `%s` means a `char` array or `char *`. A value read with `qword ptr` and then used as an address is a pointer. A field masked with `&` holds bit flags; Module 5 names them ([Bit flags and enums](primers/07-data-in-memory.md#bit-flags-and-enums)).
 5. In the Data Type Manager, right-click `ex1.exe` → New → Structure. Name it `item` and set its size to the stride from step 3.
 6. Add a row at each offset you found, with the matching type: `int`, `short`, `byte`, a `char` array, or `item *`. Name each field after how it's used. Leave the gaps `undefined` for now; some are padding and some are fields `ex1` never reads.
    A `char` array's length isn't in any instruction. It runs from its own offset up to the next field, so work it out from the offsets around it.
@@ -417,11 +427,11 @@ struct dnode {          /* size 0x18 (24) */
 
 To tell which is which, find the code that walks from the head. The field it follows to reach the second node is `next`.
 
-## Module 3: Structs in x64dbg (1 h 10 min)
+## Module 3: Structs in x64dbg (45 min)
 
 Ghidra gives you the layout. x64dbg shows the live values in it, including heap blocks that only exist while the program runs. If a field you called `stock` holds 40 and the program prints "Only 40 in stock", your layout is right.
 
-### 3A. Tour (25 min)
+### 3A. Tour (20 min)
 
 1. **Expressions.** x64dbg reads memory in expressions with square brackets. `[rax]` reads 8 bytes, `dword:[rax+0x14]` reads 4, `word:[rax+4]` reads 2, `byte:[rax+0x10]` reads 1.
    Match the size prefix to the field size from Ghidra. A plain `[rax+4]` on a 2-byte field reads 8 bytes, so the value includes the neighbouring fields.
@@ -447,20 +457,7 @@ The program's own addresses move too, because of ASLR. Convert them as on Day 1:
 
 `D2 04 00 00` is the `int` 1234 and `07 00` the `short` 7. Then come "ABC" with its zero fill, and four padding bytes that happen to be zero. The next 8 bytes are the pointer `0x1E4C2A51FA0`: the next record, a little further on the heap.
 
-### Exercise 3.1: Watch ex1's fields (20 min)
-
-1. Open `ex1.exe` in x64dbg. Find `main` from "Order refused." in String references.
-2. Find the call to `find_item` and set a breakpoint on the instruction just after it.
-   x64dbg has no names in a stripped program. Find the call by its position in `main`, or convert its Ghidra address to an offset first.
-3. Run, and enter part `1001` and quantity `50`. When it stops, RAX holds the address of the record.
-4. Right-click RAX → Follow in Dump. Find the `id`, `stock` and `name` fields at the offsets you recovered in Exercise 2.1.
-   The address in RAX should be inside the program's `.data`, not on the heap or the stack. The catalog is a global array, as described in [Where each kind of variable lives](primers/04-memory-layout.md#where-each-kind-of-variable-lives).
-5. Step over the instruction that saves RAX into a local, and note its stack slot, such as `[rbp-0x10]`.
-6. In Watch 1, add `word:[[rbp-0x10]+4]` and `byte:[[rbp-0x10]+0x10]`, using your slot. Check they show the stock and the flags.
-   If a watch shows a huge number, the size prefix is missing or wrong. If it shows an error, the slot may not be written yet; step once more.
-7. Follow the `alt` field: press Ctrl+G in the dump and enter `[[rbp-0x10]+0x18]`. Which part is the substitute? Check against the message the program prints.
-
-### Exercise 3.2: Walk ex2's linked list in the dump (25 min)
+### Exercise 3.1: Walk ex2's linked list in the dump (25 min)
 
 1. Open `ex2.exe` in x64dbg. Find the call to `matches` and set a breakpoint on it.
 2. Run and enter any pick code. When it stops, RCX holds the list head.
@@ -474,7 +471,7 @@ The program's own addresses move too, because of ASLR. Convert them as on Day 1:
 
 **If you get lost in the list.** Press Ctrl+G and enter `rcx` again to return to the head. RCX still holds it while you are paused on the call.
 
-## Module 4: Capstone, sharing a type with ex3 (1 h 15 min)
+## Module 4: Capstone, sharing a type with ex3 (50 min)
 
 `ex3.exe` uses the same part record as `ex1`, but its data is different and it reaches the parts through an array of pointers. You won't rebuild the record. You'll carry it over in a type archive.
 
@@ -503,7 +500,7 @@ The program and the `.gdt` are saved separately: saving one doesn't save the oth
    Take its size and signedness from the instruction, as in Module 1. The row was `undefined` in `ex1`'s version, so nothing else has to move.
 7. Right-click `item` under `ex3.exe` → Commit to Archive, so `day4.gdt` gets the new field too. Save the archive.
 8. Work out which part on the shelf the loop picks and what it returns.
-9. Back in `main`, work out the part number and quantity it expects. Don't run it yet.
+9. Back in `main`, work out the part number and quantity it expects. Write them down first, then run `ex3.exe` and enter them.
 
 **If the archive and the program disagree.** Applying an archive type copies it into the program, and the copy remembers which archive it came from. Editing the copy under `ex3.exe` doesn't change `day4.gdt` until you commit and save. `ex1.exe` keeps its old copy until you update it from the archive.
 
@@ -511,21 +508,79 @@ The program and the `.gdt` are saved separately: saving one doesn't save the oth
 
 If Commit to Archive isn't offered for `item`, that copy isn't linked to `day4.gdt`; it was built fresh in `ex3.exe`. Delete it, apply `item` from `day4` again, and add the field to that copy.
 
-### Part C: Check it in x64dbg (25 min)
-
-1. Open `ex3.exe` in x64dbg. Line up the addresses with Ghidra and set a breakpoint inside `worst_shortfall`'s loop.
-2. In Ghidra's Listing, find the stack slots that hold the best gap so far and the out parameter. x64dbg shows the same instructions with plain offsets, such as `[rbp-4]`.
-   The out parameter's slot holds an address, the address of `main`'s local. The `item *` you want is one more read away, at that address.
-3. In Watch 1, add the best gap as a `dword`, and the `id` of the part the out parameter points at. Press F9 to go round the loop and watch both change.
-   The `id` watch needs three reads: the slot, then the pointer it holds, then the field. Before the first match the pointer is null, so the watch shows an error or 0 until then.
-4. Break after the call returns in `main` and follow the chosen record in the dump. Check its stock and reorder fields.
-5. Run `ex3.exe` without the debugger and enter your answer.
-
 **Deliverable:** a half-page write-up. Include the `item` layout and its padding, how `ex1` and `ex3` use it, and all three answers. Add one sentence on why the shelf parameter is `item **`.
+
+## Module 5: Bit flags, enums and equates (45 min)
+
+`ex1`'s `flags` field held three yes-or-no settings in one byte. Real records do this all the time, and they keep states, such as a user's role, as enums. The compiled code keeps only the numbers; this module puts the names back.
+
+### 5A. Flags, enums and Ghidra's names for numbers (15 min)
+
+1. **Flags.** Each flag is one bit. OR sets a bit, AND tests it, AND with the inverted mask clears it, and XOR toggles it. The table is in [Bit flags and enums](primers/07-data-in-memory.md#bit-flags-and-enums).
+   At `-O0` GCC tests a bit with `and eax, 8`, then `test eax, eax`. Optimized code uses one `test al, 8`. Bit 7 of a byte is often tested with `test al, al`, then `js` or `jns`.
+2. **Inverted masks.** Clearing a bit shows the mask with every other bit set. `and eax, 0x7f` clears bit 7 of a byte, and `and eax, 0xfffffffb` clears bit 2. Flip the bits to find the flag.
+3. **Combinations.** `and eax, 5` then `cmp eax, 1` tests two bits at once: bit 0 set and bit 2 clear. The mask says which bits matter; the compared value says what each must be.
+4. **Packed fields.** A `shr` followed by an `and` pulls a field out of a larger value. The shift count is the field's lowest bit, and the mask gives its width.
+   Write each field down as a bit range, such as "bits 8 to 11". Building the value back is then a matter of shifting each field into place.
+5. **Enums.** An enum is stored as a 4-byte integer, numbered from 0. Look for a field that is only compared with a few small constants, checked with an unsigned `ja`, or used as a `switch` value.
+   A `switch` over consecutive enum values often becomes a jump table ([switch: a jump table](primers/06-control-flow.md#switch-a-jump-table)).
+6. **Magic constants.** Some constants are text. GCC copies a short string literal with `mov` of an immediate, so `0x6c6c6568` is "hell" read little-endian. Ghidra can show a constant as characters from its right-click menu.
+   Powers of two are flags, runs of ones are masks, and printable bytes are text or a signature. The primer's [Bit flags and enums](primers/07-data-in-memory.md#bit-flags-and-enums) lists more.
+7. **Enums in Ghidra.** In the Data Type Manager, right-click the program's archive → New → Enum; it sits next to Structure. The Enum Editor has one row per name and value. Set the enum's size to the size of the field it describes: 1 for a byte of flags, 4 for a C enum.
+   Apply it like any type: Ctrl+L on a variable in the decompiler, or type its name in a row of the Structure Editor. The decompiler then shows names, such as `case COLOR_RED:` or `flags & FLAG_FRAGILE`.
+8. **Equates in Ghidra.** In the Listing, put the cursor on a constant operand and press `E` (Set Equate), or right-click it → Set Equate. Type a name. The Listing then shows the name in place of that constant.
+   The dialog can apply the name to this one place or to more uses of the same value. Choose this one place unless you are sure every use means the same thing.
+
+**Enum or equate?** An enum is a type: it names every value a variable or field can hold, wherever the type is applied. An equate names one constant at the places you choose. Use an enum for a field's values and an equate for a lone magic number.
+
+### Exercise 5.1: Open ex4's vault (30 min)
+
+`ex4` checks a staff badge. You type one access code in hex. The program unpacks it into a small struct, changes the flags by the badge's level, and opens the vault for one exact combination.
+
+1. Import and analyze `ex4.exe`. Find `main` from "Vault door open." and rename it.
+2. `main` reads your code with `sscanf` and `%x`, clears a local with `memset`, then passes your number and the local's address to a function. Rename it `decode`.
+   The local is a struct. The `memset` size is its size.
+3. In `decode`, find each `shr` and `and` pair and the store that follows it. Write down each field's bit range in your code, and the offset and width of the store.
+   One field has no shift: an `and` with `0xff`, or a plain byte store, keeps the low 8 bits.
+4. Build a structure `badge` with the size from step 2, and retype `decode`'s second parameter as `badge *`. Auto Create Structure works here too.
+5. `decode` returns true only if two fields pass. One is compared with a constant; show it as characters and give it an equate (`E`), such as `SITE_TAG`. The other has an unsigned range check: that is the enum field.
+6. Open the function `main` calls next with the same struct. It is a `switch` on the enum field. For each case, note what it does to the flags byte: OR, AND, AND with an inverted mask, or XOR.
+   Each case also writes a short string into the struct, as an immediate. Read it as text to name that enum value.
+7. Create an enum `level` of 4 bytes with the names from step 6. Create a 1-byte enum `perms` with one name per bit the code uses. Apply both to the struct's fields in the Structure Editor.
+   The `switch` should now show `case` labels by name. Note how the decompiler now shows a bit test in `main`.
+8. Back in `main`, read the checks after the `switch`. Work out the value each field must have at the end. Then undo the `switch`'s change to get the value you must type.
+9. Build the access code from your bit ranges, in hex, and run `ex4.exe` with it.
+
+**Write down:** the struct layout, each field's bit range in the access code, the enum values, and the vault code.
+
+**Check yourself as you go.** The program prints the zone and the level name before its checks. If the name is not the one you aimed for, your level bits are in the wrong place.
+
+**Stretch goal:** In x64dbg, break just after the call to the `switch` function and read the flags byte in the dump. Check that the case changed it the way you predicted.
+
+## Checkpoint
+
+Every day ends with a blind checkpoint: an unseen program, solved on your own, without its source. It shows you which of today's skills you can use without a guide. Treat it as practice for Day 15, not as a test.
+
+**Time:** about 45 minutes. **Program:** `bin/day4/checkpoint.exe`, built in Module 0. Its source is in the solutions folder; don't open it.
+
+**Method.** Work the Day 0 way, as described in [The approach](primers/00-approach.md). Start a fresh copy of the [analysis notes template](templates/analysis-notes.md) and fill it in as you go, not at the end.
+
+**The task.** `checkpoint.exe` asks for a lead crate and a load weight. Find the pair it accepts. It uses only Day 4 material: an array of records, bit flags, an enum and a linked list.
+
+1. Run it once with any numbers and note everything it prints. Write the question you are answering at the top of your notes.
+2. Find `main` from a string, and list the functions it calls before the prompts.
+3. Recover the record: its stride, then each field's offset, size and use. Build it in Ghidra and apply it to the data.
+4. Work out what each flag test and each change to the flags does. Name the bits with an enum if it helps.
+5. Write down your prediction, with the reason for each number, before you type anything.
+6. Check it: run the program, or follow the records in x64dbg if your prediction fails.
+
+**Deliverable:** your notes in the template, with the record layout, what each function does, the answer, and one open question. If you are stuck after 30 minutes, write down where and what you would try next. That is a result too.
+
+Then compare with the model write-up in [lab/solutions/day4/checkpoint.md](../lab/solutions/day4/checkpoint.md).
 
 ## Beyond this lesson
 
-These challenges are extra credit, outside the 7-hour day. Do them once you've checked your answers, because they reuse the sources and the answer key. Hints and expected results are in [lab/solutions/day4/extra-credit.md](../lab/solutions/day4/extra-credit.md).
+These challenges are extra credit, outside the 7.5-hour day. Do them once you've checked your answers, because they reuse the sources and the answer key. Hints and expected results are in [lab/solutions/day4/extra-credit.md](../lab/solutions/day4/extra-credit.md).
 
 To change a source, copy it to a folder outside the repo, such as `day4x` in the kit's `projects` folder. Build the copy in the Devkit shell with the same flags as `make`, for example `gcc -O0 -s -Wall ex1_mod.c -o ex1_mod.exe`. Never edit the files in `lab/day4`; CI checks the originals.
 
@@ -544,8 +599,8 @@ To change a source, copy it to a folder outside the repo, such as `day4x` in the
 ### Challenge 3: Walk the list from the command line (★★)
 
 - **Goal:** walk `ex2`'s list in x64dbg with typed commands instead of the mouse.
-- **What to do:** Pause on the call to `matches` as in Exercise 3.2. Using only the Command box, show each node's key and letter, then move to the next node, until `next` is 0. Start with expressions and Day 3's `dump` command, then try x64dbg's commands for named variables and formatted Log output.
-- **What to check:** the Log tab lists 13 nodes, keys rising, and the letters spell the pick code you found in Exercise 3.2. Save your commands in your notes; Day 9 turns this kind of sequence into an x64dbg script.
+- **What to do:** Pause on the call to `matches` as in Exercise 3.1. Using only the Command box, show each node's key and letter, then move to the next node, until `next` is 0. Start with expressions and Day 3's `dump` command, then try x64dbg's commands for named variables and formatted Log output.
+- **What to check:** the Log tab lists 13 nodes, keys rising, and the letters spell the pick code you found in Exercise 3.1. Save your commands in your notes; Day 9 turns this kind of sequence into an x64dbg script.
 
 ### Challenge 4: Make the list doubly linked (★★★)
 
@@ -558,6 +613,47 @@ To change a source, copy it to a folder outside the repo, such as `day4x` in the
 - **Goal:** build a `.gdt` that covers every Day 4 type, and use it on optimized code that has no helper functions left.
 - **What to do:** Add `node` and `arrival` from `ex2.exe` to `day4.gdt`, next to `item`, and save it. From the `lab` folder, build optimized copies, for example `gcc -O2 -s -Wall day4/ex1_inventory.c -o bin/day4/ex1_o2.exe`, and the same for `ex2` and `ex3`. Import them into Ghidra, open `day4.gdt`, and apply the types.
 - **What to check:** which helper functions still exist at `-O2`, and where their loops went. Find the stride of the catalog loop in `ex1_o2.exe` and the shelf loop in `ex3_o2.exe`. Confirm each program accepts the same answer as its `-O0` build. As a last check, parse [structs.h](../lab/solutions/day4/structs.h) with File → Parse C Source, as its header comment suggests, and compare it with your archive.
+
+### Challenge 6: Watch ex1's fields (★)
+
+This used to be the first exercise in Module 3. It is the gentlest use of the Watch view, so start here if the Watch view still feels new.
+
+- **Goal:** watch the fields of one `ex1` record through a pointer saved on the stack.
+- **What to do:** follow the steps below.
+- **What to check:** each watch matches the field Ghidra shows for part `1001`, and `alt` leads to the part the program names.
+
+1. Open `ex1.exe` in x64dbg. Find `main` from "Order refused." in String references.
+2. Find the call to `find_item` and set a breakpoint on the instruction just after it.
+   x64dbg has no names in a stripped program. Find the call by its position in `main`, or convert its Ghidra address to an offset first.
+3. Run, and enter part `1001` and quantity `50`. When it stops, RAX holds the address of the record.
+4. Right-click RAX → Follow in Dump. Find the `id`, `stock` and `name` fields at the offsets you recovered in Exercise 2.1.
+   The address in RAX should be inside the program's `.data`, not on the heap or the stack. The catalog is a global array, as described in [Where each kind of variable lives](primers/04-memory-layout.md#where-each-kind-of-variable-lives).
+5. Step over the instruction that saves RAX into a local, and note its stack slot, such as `[rbp-0x10]`.
+6. In Watch 1, add `word:[[rbp-0x10]+4]` and `byte:[[rbp-0x10]+0x10]`, using your slot. Check they show the stock and the flags.
+   If a watch shows a huge number, the size prefix is missing or wrong. If it shows an error, the slot may not be written yet; step once more.
+7. Follow the `alt` field: press Ctrl+G in the dump and enter `[[rbp-0x10]+0x18]`. Which part is the substitute? Check against the message the program prints.
+
+### Challenge 7: Check ex3 in x64dbg (★★)
+
+This used to be Part C of Module 4. It confirms the Module 4 answer at runtime with a three-read watch.
+
+- **Goal:** watch `worst_shortfall` pick its part, through the out parameter.
+- **What to do:** follow the steps below.
+- **What to check:** the best gap and the chosen part change as the loop runs. They end on the part and quantity from Module 4.
+
+1. Open `ex3.exe` in x64dbg. Line up the addresses with Ghidra and set a breakpoint inside `worst_shortfall`'s loop.
+2. In Ghidra's Listing, find the stack slots that hold the best gap so far and the out parameter. x64dbg shows the same instructions with plain offsets, such as `[rbp-4]`.
+   The out parameter's slot holds an address, the address of `main`'s local. The `item *` you want is one more read away, at that address.
+3. In Watch 1, add the best gap as a `dword`, and the `id` of the part the out parameter points at. Press F9 to go round the loop and watch both change.
+   The `id` watch needs three reads: the slot, then the pointer it holds, then the field. Before the first match the pointer is null, so the watch shows an error or 0 until then.
+4. Break after the call returns in `main` and follow the chosen record in the dump. Check its stock and reorder fields.
+5. Run `ex3.exe` without the debugger and enter your answer again.
+
+### Challenge 8: Name the part flags in every program (★★)
+
+- **Goal:** replace the raw flag numbers in `ex1` and `ex3` with names, using one enum shared through `day4.gdt`.
+- **What to do:** In `day4.gdt`, create a 1-byte enum `item_flags` with one name per bit that `ex1` and `ex3` test. Make it the type of `item.flags`, commit it, and update both programs from the archive. Then set an equate on one constant that the enum doesn't cover, such as the entry count that `main` passes to `find_item`.
+- **What to check:** how the decompiler shows each flag test before and after. Look also at catalog entries whose flags combine two bits. Note one case where the equate is clearer than an enum, and one where it isn't.
 
 ## Answer key and hints
 
@@ -572,16 +668,20 @@ Try each exercise for at least 15 minutes before you look here. Offsets are for 
 | 2.2 layout | `calloc` asks for 0x18 bytes | `ushort key` 0x00, `char letter` 0x02, pad 0x03, `int weight` 0x04, `node *next` 0x08, `char tag[5]` 0x10, pad 0x15–0x17. The code only writes 4 bytes of `tag` ("BOX"), so any size from 4 to 8 fits |
 | 2.2 logic | `insert` walks while `(*pp)->key` is smaller than the new key | The list is sorted by key, smallest first. `matches` compares input character `i` with node `i`'s letter and requires the input to end with the list |
 | 2.2 stretch | Each letter is `enc ^ (key & 0x1f)` | Sorted by key, the letters spell the pick code below |
-| 3.1 | `1001` has a substitute; its `alt` points at the next record | Stock 40, flags 0x01; `alt` leads to part `1002` |
-| 3.2 | Stop when `next` is 0 | 13 nodes; pick code `W4LK-TH3-L1ST` |
+| 3.1 | Stop when `next` is 0 | 13 nodes; pick code `W4LK-TH3-L1ST` |
 | 4B shelf | The shelf holds 6 pointers, the records array has 7 entries | Part `7007` has the biggest gap but isn't on the shelf; `7003` isn't tracked (flags 0) |
 | 4B answer | The gap is `reorder - stock`, only for parts with flag 0x01 | Part `7002` ("valve"): reorder 15, stock 2, quantity `13` |
-| 4C | Watch the gap change from 0 to 6, 9 and 13 as the loop finds bigger gaps | The out parameter ends pointing at `7002`'s record |
+| 5.1 layout | `memset` clears 0x14 bytes | `ushort site` 0x00, `byte perms` 0x02, `byte zone` 0x03, `level` (4-byte enum) 0x04, `char role[12]` 0x08–0x13. The longest role written is 11 bytes, so 11 or 12 fits |
+| 5.1 code | `decode` shifts by 16, 12 and 8, and masks with 0xf | Site in bits 16–31, zone in 12–15, level in 8–11, permissions in 0–7. The site must be 0x5744 ("WD") and the level at most 4 (`ja`) |
+| 5.1 levels | The cases write "visitor", "staff", "supervisor", "manager", "auditor" | 0 visitor: `perms &= 0x01`. 1 staff: `\|= 0x01`. 2 supervisor: `\|= 0x03`. 3 manager: `&= 0x7f`, clearing 0x80. 4 auditor: `^= 0x10` |
+| 5.1 checks | Bit 0x80 must be clear (`test al, al`, `jns`) and bit 0x08 set | Then zone 7, level 4 (auditor) and permissions exactly 0x1c |
+| 5.1 answer | The auditor's XOR flips 0x10, so you type 0x1c ^ 0x10 | Permissions 0x0c; access code `5744740C` |
+| Checkpoint | Work it blind first | The answer, the recovered record and a model write-up are in [lab/solutions/day4/checkpoint.md](../lab/solutions/day4/checkpoint.md) |
 
 ## Wrap-up and Day 5
 
 Today's Ghidra and x64dbg features are in the running references: [ghidra-reference.md](ghidra-reference.md) under Data types, and [x64dbg-reference.md](x64dbg-reference.md) under Reading state and Watching values.
 
-Before you close Ghidra, save each program and `day4.gdt`.
+Before you close Ghidra, save each program and `day4.gdt`. Keep your checkpoint notes with the rest of your Day 4 notes. Enums and equates are in the Data types table too.
 
 **Day 5 preview:** your first Ghidra scripts, in Java. You'll use the Script Manager and the `GhidraScript` API to walk functions, strings and references in the Days 1 to 4 programs. By the end you'll have a script that decodes Day 1's `ex3` key, built one step at a time.

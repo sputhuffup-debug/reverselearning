@@ -61,6 +61,7 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | --- | --- | --- | --- |
 | Watch a value | Open the Watch 1 tab next to the dump tabs, right-click → Add, and enter an expression. It updates every time the program pauses. | | Day 4 |
 | Watch a struct field through a local | Add an expression that reads the local's stack slot, then the field: `word:[[rbp-0x10]+4]`. Use your own slot and offset. | | Day 4 |
+| Watch one flag bit | Add an expression that masks the field, such as `byte:[[rbp-0x10]+0x10]&4`. It shows 0 while the bit is clear. | | Day 4 |
 
 ## Finding code
 

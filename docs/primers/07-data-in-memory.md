@@ -1,6 +1,6 @@
 # Data in memory
 
-This primer shows how arrays, pointers, strings, structs and linked lists sit in memory. It also shows how code that uses them looks in assembly. [Day 4](../day4-training.md) relies on all of it, and [Day 5](../day5-training.md)'s capstone reads a table of records. Reading time: about 25 minutes.
+This primer shows how arrays, pointers, strings, structs, linked lists and bit flags sit in memory. It also shows how code that uses them looks in assembly. [Day 4](../day4-training.md) relies on all of it, and [Day 5](../day5-training.md)'s capstone reads a table of records. Reading time: about 30 minutes.
 
 It assumes you can read hex and little-endian values ([01: Numbers and data](01-numbers-and-data.md)) and simple instructions ([03: Reading assembly](03-reading-assembly.md)). Sections such as `.rdata` and `.data` are in [04: Memory layout](04-memory-layout.md).
 
@@ -221,6 +221,65 @@ jne     loop
 
 How loops look in general is in [06: Control flow](06-control-flow.md).
 
+## Bit flags and enums
+
+A flags field packs several yes-or-no settings into one integer, one bit each. Each flag is a constant with a single bit set: 0x01, 0x02, 0x04, 0x08 and so on. Day 4's part record has one: `flags` at offset 0x10.
+
+```c
+#define FLAG_TRACKED  0x01    /* bit 0 */
+#define FLAG_FRAGILE  0x02    /* bit 1 */
+#define FLAG_RESERVED 0x04    /* bit 2 */
+```
+
+Four operations cover almost every use. The assembly is MinGW GCC's at `-O0`, after the field has been loaded into EAX.
+
+| C | What it does | Assembly |
+| --- | --- | --- |
+| `f \|= 0x04` | Set bit 2, leave the others | `or eax, 4` |
+| `if (f & 0x04)` | Test bit 2 | `and eax, 4`, then `test eax, eax` and `je` or `jne` |
+| `f &= ~0x04` | Clear bit 2, leave the others | `and eax, 0xfffffffb`, which is -5 as a signed number |
+| `f ^= 0x10` | Toggle bit 4: set it if clear, clear it if set | `xor eax, 0x10` |
+
+Optimized code tests a bit in one instruction: `test al, 4`, then `je` or `jne`. `test` ANDs without storing the result, so ZF is 1 when the bit is clear. A test of bit 7 in a byte is often `test al, al` then `js` or `jns`, because bit 7 is the sign bit.
+
+**Clearing shows an inverted mask.** `~0x04` is every bit except bit 2. So the constant in the code is `0xfffffffb`, or `0xfb` for a byte. Flip the bits back to see which flag is being cleared.
+
+**Testing a combination.** `(f & (0x01 | 0x04)) == 0x01` asks two things at once: bit 0 set and bit 2 clear. It compiles to `and eax, 5` then `cmp eax, 1`. The mask says which bits matter; the compared value says what each must be.
+
+**Masks and shifts.** Several small fields can share one integer. A shift right moves a field down to bit 0, and an AND with a mask cuts off what is above it.
+
+```c
+unsigned int rgb = 0x00c08040;
+unsigned int green = (rgb >> 8) & 0xff;   /* 0x80 */
+```
+
+```nasm
+mov     eax, dword ptr [rbp-0x4]    ; rgb
+shr     eax, 8                      ; move bits 8-15 down to 0-7
+and     eax, 0xff                   ; keep 8 bits: green
+```
+
+The shift count is the field's lowest bit, and the mask gives its width: `0xff` is 8 bits, `0xf` is 4, `0x1` is 1. Building a value goes the other way, with `shl` and `or`.
+
+**Enums.** A C `enum` gives names to integer constants. Unless the code says otherwise, the first is 0 and each next one is 1 higher.
+
+```c
+enum color { RED, GREEN, BLUE };     /* RED = 0, GREEN = 1, BLUE = 2 */
+```
+
+The compiled code holds only the numbers. GCC and MSVC store an enum as a 4-byte `int` on Windows x64, so an enum field looks exactly like an `int` field. The clues are in the use. It is only compared with a few small constants, used as a `switch` value, or used to index a table of names.
+
+GCC treats an enum with no negative values as unsigned. So a range check on it uses `ja` or `jbe`, not `jg` or `jle`.
+
+**A switch over an enum.** Enum values are usually small and consecutive, which is what a jump table needs. So a `switch` with one case per value often becomes a jump table: a bounds check, a lookup and `jmp rax`. See [switch: a jump table](06-control-flow.md#switch-a-jump-table).
+
+**Magic constants.** Some constants tell you what the code is doing before you read it.
+
+- **A single bit**, such as 0x40 or 0x80: a flag. All bits but one, such as `0xffffffbf`: clearing that flag.
+- **Runs of ones**, such as 0xf, 0xff, 0xffff: a mask that keeps the low 4, 8 or 16 bits.
+- **Printable bytes.** `mov dword ptr [rax], 0x6c6c6568` writes "hell": read the bytes little-endian, `68 65 6c 6c`. GCC copies short string literals this way, and file signatures look the same.
+- **Famous values**, such as 0xdeadbeef or the start values of a hash. Searching the web for the constant often names the algorithm. Day 11 relies on this.
+
 ## How Ghidra helps
 
 - **Before types.** The decompiler shows raw offsets, such as `*(short *)(param_1 + 4)`. Each one is a field you still need to name.
@@ -228,8 +287,10 @@ How loops look in general is in [06: Control flow](06-control-flow.md).
 - **Applying a type.** In the decompiler, select a variable and press Ctrl+L, then type `item *`. The raw offsets turn into field names like `it->stock`.
 - **Auto Create Structure.** Right-click a pointer variable in the decompiler. Ghidra builds a struct from every offset the function uses; you then rename and fix the fields.
 - **Data in the Listing.** On a table, press `T` to apply a type and `[` to make it an array. Each element then shows its fields.
+- **Enums.** In the Data Type Manager, right-click the program's archive → New → Enum, next to Structure. Give each value a name and set the enum's size to the field's size. Applied to a variable or a struct field, it makes the decompiler show names instead of numbers.
+- **Equates.** In the Listing, put the cursor on a constant and press `E` (Set Equate) to give it a name. Every use of that constant you choose then shows the name.
 
-The full steps are in [Day 4](../day4-training.md), Module 2, and in the [Ghidra reference](../ghidra-reference.md).
+The full steps are in [Day 4](../day4-training.md), Modules 2 and 5, and in the [Ghidra reference](../ghidra-reference.md).
 
 ## How x64dbg helps
 
@@ -251,6 +312,8 @@ Remember the bytes are little-endian: the pointer `0x00000000001d2f40` appears i
 5. A loop does `mov rax, qword ptr [rax+8]` and stops when `rax` is 0. What is it probably doing?
 6. A function reads `dword ptr [rcx+rax+0x10]` after `imul rax, rax, 0x18`. What are the stride and the field offset?
 7. How do `char *names[3]` and `char names[3][8]` differ in memory?
+8. A byte of flags holds 0x0b. What does it hold after `flags &= ~0x02`? Does `test al, 4` on the result set ZF?
+9. Code reads a 4-byte field, runs `shr eax, 4` then `and eax, 7`, and later compares the result with `ja`. What are the field's bits, and what kind of value might it be?
 
 <details><summary>Answers</summary>
 
@@ -261,5 +324,7 @@ Remember the bytes are little-endian: the pointer `0x00000000001d2f40` appears i
 5. Walking a linked list: the `next` pointer is at offset 8 of each node, and NULL ends the list.
 6. The stride is 0x18 (24 bytes), the size of one element. The field is at offset 0x10 in each element.
 7. `char *names[3]` is 24 bytes of pointers that lead to strings stored elsewhere. `char names[3][8]` is 24 bytes holding the characters themselves, 8 per row, with no pointers.
+8. 0x09: `~0x02` is 0xfd, and 0x0b & 0xfd = 0x09. Bit 2 (0x04) is clear in 0x09, so `test` gives 0 and ZF is 1.
+9. Bits 4 to 6: the shift moves them down and the mask keeps 3 bits, values 0 to 7. An unsigned value with few possible values, compared with `ja`, is often an enum.
 
 </details>

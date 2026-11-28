@@ -48,3 +48,21 @@ struct arrival {
     unsigned char  enc;     /* 0x02 */
                             /* 0x03  1 byte of padding */
 };
+
+/* ex4: the badge, unpacked from the access code by decode() into a local of main. */
+enum level { LEVEL_VISITOR, LEVEL_STAFF, LEVEL_SUPERVISOR, LEVEL_MANAGER, LEVEL_AUDITOR };
+
+#define PERM_DOCK    0x01
+#define PERM_COLD    0x02
+#define PERM_HAZMAT  0x04
+#define PERM_NIGHT   0x08
+#define PERM_VAULT   0x10
+#define PERM_TEMP    0x80
+
+struct badge {
+    unsigned short site;    /* 0x00  code bits 16-31; must be 0x5744 ("WD") */
+    unsigned char  perms;   /* 0x02  code bits 0-7, PERM_* bits */
+    unsigned char  zone;    /* 0x03  code bits 12-15 */
+    enum level     level;   /* 0x04  code bits 8-11; a 4-byte enum */
+    char           role[12];/* 0x08  written by the switch on level */
+};                          /* sizeof = 0x14 (20): the size main passes to memset */

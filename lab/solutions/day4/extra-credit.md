@@ -176,3 +176,48 @@ These are from GCC 13-era MinGW-w64 at `-O2`. Your build may differ in detail.
 - Each `-O2` build accepts the same answer as its `-O0` build: `4417` and `12`, `W4LK-TH3-L1ST`, and `7002` and `13`.
 
 **Checking the archive against structs.h.** File → Parse C Source can read `structs.h`, as its header comment says. Parse it into a new archive, not into `day4.gdt`, so you can compare the two side by side. Field names may differ; offsets, sizes and types should match. Your `node.tag` may be any size from 4 to 8 and still be right.
+
+## Challenge 6: Watch ex1's fields (★)
+
+**Hints**
+
+- The call to `find_item` is the one whose arguments are a `.data` address, the constant 8 and your part number.
+- At `-O0`, `main` stores RAX in a local right after the call. That store's `[rbp-...]` is the slot the watches read through.
+- `stock` is 2 bytes and `flags` is 1, so use `word:` and `byte:`. A plain `[...]` reads 8 bytes and mixes in the next fields.
+
+**Expected results**
+
+Part `1001` has stock 40 and flags 0x01. Its `alt` field points at the next record in the catalog, part `1002`. The program prints "Only 40 in stock; try part 1002."
+
+## Challenge 7: Check ex3 in x64dbg (★★)
+
+**Hints**
+
+- `worst_shortfall` saves its three arguments in its home slots: `[rbp+0x10]`, `[rbp+0x18]` and `[rbp+0x20]`. The out parameter is the third.
+- The best gap is a local `int` that starts at 0. The `id` watch is `dword:[[[rbp+0x20]]]`: the slot, the pointer it holds, then the field at offset 0. Check the slot against your own Listing.
+- Put the breakpoint on the flag test (`and eax, 1`), so it stops once per shelf entry. The compare with the best gap only runs for tracked parts.
+
+**Expected results**
+
+The best gap goes 0, 6, 9, 13 as the loop finds bigger gaps. The out parameter ends pointing at `7002`'s record ("valve"): stock 2, reorder 15. The program accepts part `7002` and quantity `13`.
+
+## Challenge 8: Name the part flags in every program (★★)
+
+**Hints**
+
+- The enum must be 1 byte, the size of `item.flags`. A 4-byte enum won't fit the row without overwriting the padding byte and `reorder`.
+- `ex1` tests 0x04 and `ex3` tests 0x01. Bit 0x02 is never tested, but it is set in the data, so give it a name too.
+- Update a program's copy from the archive by right-clicking `item` under the program → Update from Archive. If the option isn't offered, see "If the archive and the program disagree" in Module 4.
+- The count that `main` passes to `find_item` is a plain `mov edx, 8`. In the Listing, put the cursor on the 8 and press `E`.
+
+**Expected results**
+
+| Name (yours may differ) | Value | Seen in |
+| --- | --- | --- |
+| `TRACKED` | 0x01 | `ex3`'s `worst_shortfall` |
+| `FRAGILE` | 0x02 | the data only |
+| `RESERVED` | 0x04 | `ex1`'s `main` |
+
+With the enum applied, the decompiler shows the tests as `it->flags & RESERVED` and `it->flags & TRACKED`, or close to it. Entries whose flags combine two bits may show as names joined with `|`, or as a plain number. Examples are `gasket` (0x03) and `keystone` (0x06). Which one depends on the Ghidra version; note what yours does.
+
+An equate suits the count 8: it is a one-off number, not a value a variable holds. An enum suits `flags`, because every use of the field gets the names at once.
