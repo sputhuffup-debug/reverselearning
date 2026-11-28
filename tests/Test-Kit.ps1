@@ -66,8 +66,10 @@ function Invoke-Program {
 }
 
 function Test-Program {
-    param([string]$Name, [string]$Exe, [string[]]$InputLines, [int]$ExpectCode, [string]$ExpectText)
-    $r  = Invoke-Program $Exe $InputLines
+    param([string]$Name, [string]$Exe, [string[]]$InputLines, [int]$ExpectCode, [string]$ExpectText, [string[]]$ProgramArgs = @())
+    # Quote command-line arguments that contain spaces (or are empty).
+    $quoted = @($ProgramArgs | Where-Object { $null -ne $_ } | ForEach-Object { if ($_ -eq '' -or $_ -match '\s') { "`"$_`"" } else { $_ } })
+    $r  = Invoke-Program $Exe $InputLines -Arguments $quoted
     $ok = ($r.Code -eq $ExpectCode) -and ($r.Output -like "*$ExpectText*")
     Write-Result $ok $Name "(expected exit $ExpectCode and '$ExpectText'; got exit $($r.Code): $($r.Output))"
 }
@@ -225,7 +227,7 @@ foreach ($dayDir in Get-ChildItem -LiteralPath $LabSource -Directory | Where-Obj
             $keygenOut = (& $py.Source -I (Join-Path $solDir $c.Keygen) @($c.KeygenArgs) | Out-String).Trim()
             $inputLines = @($inputLines | ForEach-Object { $_.Replace('{keygen}', $keygenOut) })
         }
-        Test-Program "$day $($c.Name)" $exe $inputLines $c.Exit $c.Expect
+        Test-Program "$day $($c.Name)" $exe $inputLines $c.Exit $c.Expect @($c.Args)
     }
 }
 

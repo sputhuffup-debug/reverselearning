@@ -3,6 +3,7 @@
 # Each check runs <Program>.exe from the day's build folder with Input on stdin, and passes when the
 # exit code is Exit and the output contains Expect. "{keygen}" in Input is replaced by the output of
 # the Keygen script (in this folder) run with KeygenArgs; the check is skipped if Python is missing.
+# Optional: Args = @('a', 'b') passes command-line arguments to the program (quoted if they contain spaces).
 @{
     Checks = @(
         @{ Name = 'ex1 right password'; Program = 'ex1'; Input = @('hunter2-ghidra');      Exit = 0; Expect = 'Access granted!' }
