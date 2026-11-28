@@ -78,7 +78,7 @@ static unsigned long long weave(int n) {
 
 - Level `19` is still the one that matches `0xA4B5`.
 - Function Call Trees no longer list `weave` among its own outgoing calls; it calls nothing.
-- The new `weave` is called once per level, where the recursive one makes 177 calls for level 10 (Exercise 3.2's stretch goal). For level 30 the recursive version makes 2,692,537 calls.
+- The new `weave` is called once per level, where the recursive one makes 177 calls for level 10 (challenge 7's stretch goal). For level 30 the recursive version makes 2,692,537 calls.
 - At `-O0` the `for` loop has the usual shape: counter set, `jmp` forward to the test, body, `add` to the counter, `cmp` and `jle` back up.
 - The base case is now a test before the loop, not a test at the top of each call.
 
@@ -104,3 +104,46 @@ static unsigned long long weave(int n) {
 - `main` still calls `weave` once, and the answer is unchanged: level `19`.
 - The decompiler's version is long and hard to match to the three lines of C. This is why Day 2 recommends finding the same function at `-O0` first and comparing.
 - A newer GCC may keep both calls, keep neither, or unroll differently. Whatever you get, the base case (`n < 2` returning `n + 2`) should still be visible near the start.
+
+## 7. See the recursion in both tools (★)
+
+**Hint.** Count the calls for small levels first: level 1 makes 1 call, level 2 makes 3. For the stops with `ecx == 1`, count how many times `weave(1)` appears in the call tree for level 5.
+
+**Expected result.**
+
+- Function Call Trees shows `weave` among its own outgoing calls, and it can be expanded without end. Its only incoming call is from `main`.
+- `main` calls `printf`, `scanf`, `puts` and `weave`. It also calls MinGW's `__main` helper, which may show as a `FUN_` name.
+- `weave(1)` returns 3 (`n + 2`), in RAX after Ctrl+F9.
+- With level 5 the breakpoint stops 5 times. `weave(1)` is reached once for each path down the tree that ends at 1. For levels 1 to 5 that is 1, 1, 2, 3 and 5 times: the Fibonacci numbers.
+- The stretch goal: calls for level `n` = calls for `n-1` + calls for `n-2` + 1, so level 10 makes 177 calls. The hit count in the Breakpoints tab is 177.
+
+## 8. Read ex4's globals at runtime (★)
+
+**Hint.** Each table entry is 8 bytes, because it is a pointer. The word-compare function calls `strcmp(token, expected)`, so the arguments are in that order.
+
+**Expected result.**
+
+- RCX holds the current word from your input (`aaa` on the first stop). RDX holds the expected word, `meadow` for the first one.
+- `[address+8*5]` reads entry 5 of `words`, the pointer to `meadow`. `dump` with that pointer shows the text. Reading an entry of `order` needs `dword:[address]`, because those entries are 4 bytes.
+- With a wrong first word the breakpoint stops once per try, three times in all, before "Locked out.".
+- The passphrase is unchanged: `meadow-falcon-tundra-amber`.
+
+## 9. ex5 without wide strings (★★)
+
+**Hint.** Compare the code builder in the two builds instruction by instruction. Look at the size keyword on each memory operand, and at how the index is turned into an offset.
+
+**Expected result.** With MinGW-w64 GCC 13 at `-O0 -s -Wall`:
+
+| | `ex5` (wide) | Narrow copy |
+| --- | --- | --- |
+| Strings in Defined Strings | Names and "Badge reader started." are `unicode`, shown as `u"..."`; the messages printed by `puts` stay plain | All plain strings |
+| Reading a name character | `movzx eax, word ptr [rax]`, then `movzx eax, ax` | `movzx eax, byte ptr [rax]`, then `movsx eax, al` (plain `char` is signed) |
+| Index to offset | `lea rdx, [rax+rax]`: index times 2 | The index is added as it is |
+| Storing a code character | `mov word ptr [rax], dx` | `mov byte ptr [rax], dl` |
+| The terminator | `mov word ptr [rax], 0` | `mov byte ptr [rax], 0` |
+| Imports | `wcscmp`, `wcslen`, `__wgetmainargs`, `OutputDebugStringW` | `strcmp`, `strlen`, `__getmainargs`, `OutputDebugStringA` |
+| The code buffer on the stack | 32 bytes (16 `wchar_t`) | 16 bytes |
+
+- The arithmetic is the same in both. `sub eax, 0x5e` comes first; `0x5e` is `'a' - 3` folded into one constant. Then the magic number `0x4EC4EC4F` divides by 26, `imul` by `0x1a` and `sub` make the `%`, and `lea` with `+0x41` adds `'A'`.
+- The narrow `main` starts with a `call` to MinGW's `__main` helper, as every course program has so far. GCC adds that call only to a function named `main`, so the wide build's `wmain` has none. MinGW's startup code calls `__main` as well, and the helper does its work only once, so nothing is lost.
+- The right answers don't change: `grace JUDFH` and `barbara EDUEDUD`.

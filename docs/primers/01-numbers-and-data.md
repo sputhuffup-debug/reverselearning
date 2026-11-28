@@ -2,7 +2,7 @@
 
 How numbers, text and raw bytes look inside a program, and how to read them in a hex dump. [Day 1](../day1-training.md) uses all of it from the first exercise: addresses, constants, the dump in x64dbg, and the XOR in `ex3`.
 
-Reading time: about 15 minutes.
+Reading time: about 20 minutes.
 
 ## Three ways to write a number
 
@@ -122,7 +122,34 @@ Here is the start of the read-only data in a small program that asks for a door 
 
 Three strings sit next to each other. `Door code: ` ends with the `00` at `0x14000900B`. Then `0D 0A 00` is `"\r\n"`. Then `open-sesame` starts at `0x14000900F` and ends at the `00` at `0x14000901A`. The right-hand column shows non-printable bytes, like `00`, as dots.
 
-Windows also uses **wide strings** (`wchar_t`, used by API functions whose names end in `W`). Each character takes 2 bytes, so plain English text looks like `44 00 6F 00 6F 00 72 00` (`D.o.o.r.`) and ends with `00 00`. Ghidra's Defined Strings lists both kinds.
+Windows also uses **wide strings** (`wchar_t`, used by API functions whose names end in `W`). Each character takes 2 bytes, so plain English text looks like `44 00 6F 00 6F 00 72 00` (`D.o.o.r.`) and ends with `00 00`. Ghidra's Defined Strings lists both kinds; the next section covers wide strings in detail.
+
+## Wide text (UTF-16)
+
+ASCII has room for 128 characters, too few for most of the world's languages. Windows itself stores text as **UTF-16**, where each character is a 16-bit number. Text in English and most European languages takes exactly 2 bytes per character.
+
+In C on Windows, one UTF-16 character has the type `wchar_t`, which is 2 bytes. A **wide string** is an array of them ended by a 2-byte zero. On Linux `wchar_t` is 4 bytes, so don't carry byte counts over from there.
+
+A wide string literal has an `L` in front of the quotes: `L"Door code"`. It is stored in little-endian order, like any 2-byte value. For ASCII characters the high byte is zero, so every other byte in the dump is `00`:
+
+```
+0000000140004000  44 00 6F 00 6F 00 72 00 20 00 63 00 6F 00 64 00  D.o.o.r. .c.o.d.
+0000000140004010  65 00 00 00 4F 00 4B 00 00 00 00 00 00 00 00 00  e...O.K.........
+```
+
+`L"Door code"` has 9 characters, so it takes 18 bytes, plus 2 for the terminator `00 00` at `0x140004012`. `L"OK"` starts at `0x140004014`. A wide string of n characters always takes 2n + 2 bytes, and the text column shows a dot between every pair of letters.
+
+**The wide C functions.** `wcslen`, `wcscmp`, `wcscpy` and `wprintf` are the `wchar_t` twins of `strlen`, `strcmp`, `strcpy` and `printf`. `wcslen` counts characters, not bytes. Handing a wide string to `strlen` is a classic bug: it stops at the first `00` byte, so `L"OK"` has length 1.
+
+**In assembly**, a loop over a wide string reads 2 bytes at a time, with `movzx eax, word ptr [...]`. The index is doubled before it is added, as in `lea rdx, [rax+rax]`, or a pointer moves on by 2. The end test is `test ax, ax`, and compares use 16-bit registers, such as `cmp ax, 0x23`.
+
+**A and W functions.** Windows API functions that take text come in pairs. `CreateFileA` and `MessageBoxA` take 8-bit text in the system's code page, often called ANSI. `CreateFileW` and `MessageBoxW` take UTF-16.
+
+Windows works in UTF-16 inside, so most A functions convert the text and then call their W twin. Most Windows code, Microsoft's own included, calls the W functions directly.
+
+In C source the plain name `MessageBox` is a macro: it means `MessageBoxW` when `UNICODE` is defined, and `MessageBoxA` otherwise. The program's imports always show the real name, with its letter.
+
+**In Ghidra**, Defined Strings lists wide strings with the data type `unicode` and shows them as `u"Door code"`. If analysis missed one, put the cursor on its first byte, press `T` and enter `unicode`. **In x64dbg**, the dump can show its text column as Unicode instead of ASCII (right-click the dump); the dots then disappear.
 
 ## XOR
 
@@ -161,6 +188,7 @@ If you know one original byte, you can also find the key: `key = stored ^ origin
 6. In a dump you see `68 69 00`. What is it?
 7. What is `0x37 ^ 0x37`? What is `0x41 ^ 0x20`?
 8. A program stores the byte `0x3C` and you know the original was `'a'` (`0x61`). What was the XOR key?
+9. A dump shows `4F 00 4B 00 00 00`. What is it, how many bytes does it take, and what does `strlen` return for its address?
 
 <details><summary>Answers</summary>
 
@@ -172,5 +200,6 @@ If you know one original byte, you can also find the key: `key = stored ^ origin
 6. The C string `"hi"`: `h` is `0x68`, `i` is `0x69`, and `00` is the terminating zero.
 7. `0x37 ^ 0x37` is `0`. `0x41 ^ 0x20` is `0x61`: `'A'` becomes `'a'`, because ASCII upper and lower case differ only in the `0x20` bit.
 8. `0x3C ^ 0x61` = `0x5D`.
+9. The wide string `L"OK"`: 2 characters, 6 bytes with its 2-byte terminator. `strlen` returns 1, because it stops at the first `00` byte.
 
 </details>

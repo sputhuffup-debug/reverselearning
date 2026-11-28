@@ -2,7 +2,9 @@
 
 ## Overview
 
-Day 3 follows Day 2's work on optimized code and the stack. Today you learn to recognize the shapes C control flow takes in machine code: a `switch` compiled to a jump table, the three kinds of loop, a function that calls itself, and data that lives in global variables. You will practice on four small programs, and you will solve one of them from the Listing alone with the decompiler closed.
+Day 3 follows Day 2's work on optimized code and the stack. Today you learn to recognize the shapes C control flow takes in machine code: a `switch` compiled to a jump table, the three kinds of loop, a function that calls itself, and data that lives in global variables. You also meet two kinds of data that Windows programs use everywhere: wide (UTF-16) text and command-line arguments.
+
+You will practice on five small programs, and you will solve one of them from the Listing alone with the decompiler closed. The day ends with a checkpoint: a sixth program you solve without its source.
 
 Why shapes? The decompiler's output is a guess, and sometimes a wrong one. If you can see "a loop that runs at least once" in the raw Listing, you can check the guess and work without it.
 
@@ -14,6 +16,9 @@ Why shapes? The decompiler's output is a guess, and sometimes a wrong one. If yo
 4. Find global variables, tables of pointers and strings, and see which code uses them.
 5. Read a short function from its assembly without the decompiler.
 6. Use x64dbg's conditional breakpoints, its command line and its graph view to stop exactly where you need.
+7. Read UTF-16 strings in both tools, and tell the A and W versions of a Windows function apart.
+8. Find where a program's command-line arguments arrive, and run it with arguments in x64dbg.
+9. Solve an unseen program on your own and write it up.
 
 **What you need**
 
@@ -24,6 +29,8 @@ Why shapes? The decompiler's output is a guess, and sometimes a wrong one. If yo
 **Before you start**
 
 Read [How C control flow compiles](primers/06-control-flow.md): if-else, the three loop shapes, switch and jump tables, and recursion. Refresh the jump table in [Registers and flags](primers/02-registers-and-flags.md) and where globals live in [A program in memory](primers/04-memory-layout.md).
+
+For Module 5, read [Wide text (UTF-16)](primers/01-numbers-and-data.md#wide-text-utf-16) and [The command line and environment](primers/04-memory-layout.md#the-command-line-and-environment). For the checkpoint, have the method from [Day 0's primer](primers/00-approach.md) and a copy of the [analysis notes template](templates/analysis-notes.md) ready.
 
 Each module below also links to the exact primer section it builds on, at the point where you need it. If a step stops making sense, follow that link first.
 
@@ -39,27 +46,29 @@ The worked examples are not exercise programs. Each shows C, the pseudo-code a r
 
 ## Schedule
 
-The day runs about 7 hours with breaks, and roughly half of it is hands-on exercise time.
+The day runs about 7.5 hours with breaks, and more than half of it is hands-on exercise time.
 
 | Time | Block | What you do |
 | --- | --- | --- |
-| 0:00–0:20 | Module 0: Setup | Snapshot the VM, compile the four practice programs |
-| 0:20–1:00 | Module 1A: Switches and jump tables | How a `switch` compiles, switch recovery, bookmarks, Listing fields |
-| 1:00–2:00 | Exercise 1.1–1.3 | Map the menu in `ex1`; open the vault with a conditional breakpoint |
-| 2:00–2:15 | Break |  |
-| 2:15–2:45 | Module 2A: Loop shapes | `for`, `while` and `do`-`while` in assembly; the x64dbg command line |
-| 2:45–3:45 | Exercise 2.1–2.2 | Find the three loops in `ex2`; read the door code at runtime |
-| 3:45–4:30 | Lunch |  |
-| 4:30–5:30 | Module 3: Recursion | Solve `ex3` from the Listing alone; Function Call Trees |
-| 5:30–6:30 | Module 4: Global data and strings | Recover the passphrase table in `ex4` |
-| 6:30–6:50 | Review | Go over the answer key and write up your notes |
-| 6:50–7:00 | Wrap-up | Update your references and the plan for Day 4 |
+| 0:00–0:15 | Module 0: Setup | Snapshot the VM, compile the practice programs |
+| 0:15–0:55 | Module 1A: Switches and jump tables | How a `switch` compiles, switch recovery, bookmarks, Listing fields |
+| 0:55–1:55 | Exercise 1.1–1.3 | Map the menu in `ex1`; open the vault with a conditional breakpoint |
+| 1:55–2:10 | Break |  |
+| 2:10–2:40 | Module 2A: Loop shapes | `for`, `while` and `do`-`while` in assembly; the x64dbg command line |
+| 2:40–3:40 | Exercise 2.1–2.2 | Find the three loops in `ex2`; read the door code at runtime |
+| 3:40–4:25 | Lunch |  |
+| 4:25–5:05 | Module 3: Recursion | Solve `ex3` from the Listing alone |
+| 5:05–5:45 | Module 4: Global data and strings | Recover the passphrase table in `ex4`; Function Call Trees |
+| 5:45–6:30 | Module 5: Wide text and the command line | UTF-16 strings, A and W functions, `argv`; solve `ex5` with arguments |
+| 6:30–7:15 | Checkpoint | Solve `checkpoint.exe` without its source and write it up |
+| 7:15–7:25 | Review | Go over the answer key and compare your checkpoint notes with the model write-up |
+| 7:25–7:30 | Wrap-up | Update your references and the plan for Day 4 |
 
-The worked examples are part of each module's teaching time; read them, don't type them in. The challenges in [Beyond this lesson](#beyond-this-lesson) are extra credit, outside the 7 hours.
+The worked examples are part of each module's teaching time; read them, don't type them in. The challenges in [Beyond this lesson](#beyond-this-lesson) are extra credit, outside the 7.5 hours.
 
-## Module 0: Build the practice programs (20 min)
+## Module 0: Build the practice programs (15 min)
 
-Today's four programs each hide one answer. Their sources are in the repo's `lab/day3` folder and linked below. As on Day 1, don't read the source until you have finished with the tools.
+Today's five programs each hide one answer. Their sources are in the repo's `lab/day3` folder and linked below. As on Day 1, don't read the source until you have finished with the tools.
 
 [**ex1\_vault.c**](../lab/day3/ex1_vault.c): a menu driven by a `switch`; the right sequence of options opens the vault
 
@@ -69,15 +78,21 @@ Today's four programs each hide one answer. Their sources are in the repo's `lab
 
 [**ex4\_phrase.c**](../lab/day3/ex4_phrase.c): a passphrase made of words from a global table
 
+[**ex5\_wide.c**](../lab/day3/ex5_wide.c): a badge reader that takes a name and a code on its command line, as wide strings
+
+The build also makes `checkpoint.exe`, the program for the [Checkpoint](#checkpoint). Its source is with the spoilers, so don't look for it, and don't open the program until then.
+
 **Compile** with `make`. Open `RE-Portable\Devkit.cmd`; its shell starts in the repo's `lab` folder. Then run:
 
 ```bash
-make day3     # builds bin/day3/ex1.exe to ex4.exe
+make day3     # builds bin/day3/ex1.exe to ex5.exe, and checkpoint.exe
 ```
 
-The executables go into `bin/day3`. They are built like Day 1's: `-O0` and `-s`, so the code is close to the source and the function names are gone.
+The executables go into `bin/day3`. They are built like Day 1's: `-O0` and `-s`, so the code is close to the source and the function names are gone. `ex5` also gets `-municode`, which Module 5 explains.
 
-Run each `.exe` in `bin/day3` once with a wrong answer. `ex1` reads one option per line; type `0` to quit it. `ex4` gives you three tries.
+Run `ex1` to `ex4` in `bin/day3` once with a wrong answer. `ex1` reads one option per line; type `0` to quit it. `ex4` gives you three tries.
+
+`ex5` reads nothing from the keyboard: run it once with no arguments, and once as `bin/day3/ex5.exe alice 1234`.
 
 Write down what each program prints on a wrong answer: every exercise starts by finding `main` from one of those messages.
 
@@ -468,7 +483,7 @@ The body starts right after the setup, with no `jmp` past it. That matters: with
 
 **What you should see.** The digits are ASCII: bytes `0x30` to `0x39`, shown as digits in the text column. See [Text in a dump](primers/01-numbers-and-data.md#text-in-a-dump). If the dump shows something else, your offset is wrong: check it against the `lea` or `movzx` that reads the array in the Listing. A condition on `dl` and `al` compares single bytes, which is right here because the array is `char`.
 
-## Module 3: Recursion (1 h)
+## Module 3: Recursion (40 min)
 
 A recursive function calls itself. In the Listing that is a `call` whose target is the start of the function it is in. Each call gets its own stack frame, which you met on Day 2.
 
@@ -568,21 +583,7 @@ Obfuscated code or an unusual compiler can leave you with no useful decompiler o
 
 **If you get stuck.** Follow the three passes from the tree walk example. Annotate each instruction with `;` as you go: "arg n", "first result", and so on. Then check your C by hand for the two smallest inputs, comparing it with what the Listing would return for them.
 
-### Exercise 3.2: See the recursion in both tools (25 min)
-
-1. In Ghidra, put the cursor in `weave` and open Window → Function Call Trees. Look at Incoming Calls and Outgoing Calls. `weave` shows up inside its own outgoing calls, and you can keep expanding it.
-2. Open the Function Call Trees for `main` too. Note which library functions it calls.
-3. In x64dbg, open `ex3.exe` and set a breakpoint on the first instruction of `weave`. Edit it and set Break Condition to `ecx == 1`.
-4. Run it and enter `5`. Each time it stops, RCX holds 1, and the arguments of the calls still waiting are on the stack. Press Ctrl+F9 and read RAX to see what `weave(1)` returns.
-5. Clear the condition and press F9 a few times. Watch RCX change as the calls go deeper and come back.
-
-**Stretch goal:** set the condition to `0` so the breakpoint never stops. Run with level 10 and read the hit count in the Breakpoints tab. Explain the number.
-
-**Why the condition is on ECX.** At the first instruction of `weave`, the prologue has not run yet, so the argument is still in ECX. A few instructions later it has been copied to the home slot and ECX may be reused. Conditions on arguments belong on the function's first instruction.
-
-**What you should see.** With level 5, the breakpoint stops several times, because `weave(1)` is reached along more than one path. Open the Call Stack tab at each stop: the number of `weave` lines changes from stop to stop. The stretch goal's count grows fast with the level, which is why recursion like this is slow for large inputs.
-
-## Module 4: Global data and strings (1 h)
+## Module 4: Global data and strings (40 min)
 
 Globals live in the program's data sections, not on the stack. Initialized globals go in `.data`, constants and string literals in `.rdata`, and zeroed globals in `.bss`. In the Listing, code reaches them with an address relative to RIP, such as `[rip+0x2e85]`, and Ghidra shows the target as a `DAT_` label.
 
@@ -705,7 +706,7 @@ The `char` argument arrived in DL and was saved as a single byte at `[rbp+0x18]`
 ### Exercise 4.1: Recover the passphrase table in ex4 (35 min)
 
 1. Import and analyze `ex4.exe`. In Defined Strings, find the eight words that look like a word list. Find `main` from "Passphrase accepted.".
-2. Open Function Call Trees for `main` and list the functions it calls. Rename them as you work out what each does. One changes your input, one splits it, one compares a single word.
+2. With the cursor in `main`, open Window → Function Call Trees. It shows Incoming Calls (who calls `main`) and Outgoing Calls (what `main` calls). List the functions it calls. Rename them as you work out what each does. One changes your input, one splits it, one compares a single word.
 3. In the function that compares one word, find the two globals it reads. One is a table of pointers to the words, the other a table of small numbers.
 4. Go to the pointer table. Press `P` on the first entry to make it a pointer, then `[` to make an array of eight. Rename it `words`.
 5. Go to the table of numbers, make it an array of four integers, and rename it `order`.
@@ -717,19 +718,148 @@ The `char` argument arrived in DL and was saved as a single byte at `[rbp+0x18]`
 
 **Common mistakes.** The order of the words in Defined Strings is the order they are stored, not the order of the passphrase. Another trap is calling the pointer table a string: before you press `P`, its bytes look like gibberish, because they are little-endian addresses. The Listing's left margin and the Memory Map both tell you a global's section; [In Ghidra](primers/04-memory-layout.md#in-ghidra) lists the clues.
 
-### Exercise 4.2: Read the globals at runtime (25 min)
+## Module 5: Wide text and the command line (45 min)
 
-1. Open `ex4.exe` in x64dbg and find the `strcmp` call in the word-compare function.
-2. Set a breakpoint on it and run. Enter `aaa-bbb-ccc-ddd`.
-3. When it stops, follow RCX and RDX in the dump. One is the current word from your input, the other the word it must match.
-4. Use the command line to read the tables directly. Work out the address of `words` from Ghidra and the image base. Then type expressions such as `[address+8*5]` to get the pointer for entry 5, and `dump` that pointer.
-5. Enter the passphrase you found and check that it is accepted.
+So far every program has read its input from the keyboard, as 8-bit text. Real Windows programs often do neither: they keep their text as UTF-16, and they take their options on the command line.
 
-**What you should see.** The breakpoint stops once per word until a compare fails, so a wrong first word gives one stop per try. `[address]` reads 8 bytes, which is exactly one pointer; reading a 4-byte table entry needs `dword:[address]`. The address from step 4 changes every run, because of ASLR; [In x64dbg](primers/04-memory-layout.md#in-x64dbg) shows where to find the base.
+Windows' own functions work in UTF-16, so most Windows code does too. Search such a program for 8-bit strings only and you miss most of its text. Miss its arguments, and a tool that prints nothing when double-clicked looks broken.
+
+### 5A. Wide strings and argv (15 min)
+
+Background: [Wide text (UTF-16)](primers/01-numbers-and-data.md#wide-text-utf-16) and [The command line and environment](primers/04-memory-layout.md#the-command-line-and-environment).
+
+1. **`wchar_t` and `L"..."`.** On Windows, `wchar_t` is 2 bytes and holds one UTF-16 character. A literal with an `L` in front, such as `L"open"`, is a wide string. In a dump, plain English text has a `00` after every letter and ends with `00 00`.
+2. **The wide C functions.** `wcslen`, `wcscmp` and `wcscpy` work like `strlen`, `strcmp` and `strcpy`, on `wchar_t`. They are imports from `msvcrt.dll`, so they keep their names in a stripped program.
+3. **A and W.** Windows functions that take text come in pairs: `CreateFileA` and `CreateFileW`, `MessageBoxA` and `MessageBoxW`. The W version takes UTF-16 and the A version 8-bit text. Most Windows code calls the W version; Symbol Tree → Imports shows which one a program uses.
+4. **Wide strings in Ghidra.** Defined Strings lists them with the data type `unicode`, and shows them as `u"..."`. If one is missing, go to its first byte, press `T` and enter `unicode`.
+5. **Wide strings in x64dbg.** The dump's text column shows ASCII by default, so wide text reads `o.p.e.n.`. Right-click the dump and switch the text view to Unicode to read it plainly.
+6. **`argc` and `argv`.** `main(int argc, char **argv)` is an ordinary function: `argc` arrives in ECX and `argv` in RDX. `argv[1]` is the pointer at `argv + 8`, `argv[2]` the one at `argv + 0x10`. `argc` counts the program's name too.
+7. **`wmain`.** Built with `-municode`, a program starts at `wmain(int argc, wchar_t **argv)`, and each argument is a wide string. Its imports include `__wgetmainargs`, where a `main` program has `__getmainargs`.
+8. **Where the command line lives.** Windows keeps the whole command line as one UTF-16 string in the process parameters, which the PEB points to. `GetCommandLineW` returns it. The C runtime splits it into `argv` before `main` runs.
+9. **Arguments in x64dbg.** Open the program, and while it waits at the system breakpoint, use File → Change Command Line. Keep the program's path at the start and type the arguments after it. Then press F9.
+
+**Check the command line.** Type `dump [[peb()+0x20]+0x78]` in the Command box. `peb()` is the PEB's address; the primer's table explains the two offsets. The dump then shows the command line the program will split into `argv`.
+
+**Common mistakes.** A wide string handed to `strlen` has length 1, so a check that mixes the two kinds always fails. Arguments are split once, at startup, so changing the command line after `main` has started does nothing. And an `argc` of 3 means two arguments, not three.
+
+#### Worked example: a wide string loop and wmain
+
+```c
+int count_wide(const wchar_t *s) {
+    int n = 0;
+    while (s[n] != 0)
+        n++;
+    return n;
+}
+
+int wmain(int argc, wchar_t **argv) {
+    if (argc < 2)
+        return 2;
+    if (wcscmp(argv[1], L"open") == 0)
+        return 0;
+    return count_wide(argv[1]);
+}
+```
+
+```text
+count_wide(s):                 s points to 2-byte characters (word ptr, index * 2)
+    n = 0
+    while word [s + n*2] != 0: n++
+    return n                   a character count, like wcslen
+
+wmain(argc, argv):             ECX = argc, RDX = argv
+    if argc <= 1 -> return 2   no argument typed
+    if wcscmp([argv+8], u"open") == 0 -> return 0
+    return count_wide([argv+8])
+```
+
+```nasm
+count_wide:
+    mov  qword ptr [rbp+0x10], rcx    ; s
+    mov  dword ptr [rbp-0x4], 0       ; n = 0
+    jmp  .Lcond                       ; while: test first
+.Lbody:
+    add  dword ptr [rbp-0x4], 1       ; n++
+.Lcond:
+    mov  eax, dword ptr [rbp-0x4]
+    cdqe
+    lea  rdx, [rax+rax]               ; n * 2: each character is 2 bytes
+    mov  rax, qword ptr [rbp+0x10]
+    add  rax, rdx
+    movzx eax, word ptr [rax]         ; s[n], 2 bytes
+    test ax, ax                       ; the 2-byte terminator?
+    jne  .Lbody
+
+wmain:
+    mov  dword ptr [rbp+0x10], ecx    ; argc
+    mov  qword ptr [rbp+0x18], rdx    ; argv
+    cmp  dword ptr [rbp+0x10], 1      ; "argc < 2" became "argc > 1?"
+    jg   .Lhave_arg
+    mov  eax, 2
+    jmp  .Lend
+.Lhave_arg:
+    mov  rax, qword ptr [rbp+0x18]    ; argv
+    add  rax, 8
+    mov  rax, qword ptr [rax]         ; argv[1]
+    lea  rdx, [rip+...]               ; u"open" in .rdata
+    mov  rcx, rax
+    call wcscmp
+    test eax, eax
+    jne  .Lcount
+    mov  eax, 0                       ; matched: return 0
+    jmp  .Lend
+.Lcount:
+    ...                               ; argv[1] again, then call count_wide
+```
+
+This is the string loop from Module 4 with two changes: `word ptr` instead of `byte ptr`, and the index doubled before it is added. Those two details are how you spot wide text in code. The `add rax, 8` followed by a load is `argv[1]`; an `add rax, 0x10` would be `argv[2]`.
+
+### Exercise 5.1: Read the badge check in ex5 (20 min)
+
+1. Import and analyze `ex5.exe`. Open Defined Strings and sort by the Data Type column. Note which strings are wide (`unicode`) and which are plain.
+2. Find the function that prints "Unknown name." and rename it `wmain`. Find the compare on `argc` and write down how many arguments it expects.
+3. Find where `argv[1]` and `argv[2]` are read. Follow `argv[1]` into the function it is passed to.
+4. That function loops over a table of pointers to wide strings. Make it an array (`P`, then `[`) and rename it `staff`. Back in `wmain`, find the second table read with the index it returns, and rename it `clearance`.
+5. Find the function that builds the expected code. Work out, for one character, how the code character is made from the name character.
+6. In Symbol Tree → Imports, find the Windows function `wmain` calls first, and whether it is the A or the W version. Note the text it passes.
+
+**Write down:** each name that is accepted, its code, and the rule that turns a name into a code.
+
+**What you should see.** The code builder reads with `word ptr` and doubles its index, as in the worked example. `0x4EC4EC4F` with `sar edx, 3` is the magic number for dividing by 26, and the `imul` by `0x1a` and `sub` after it make a `%`. GCC folds constants together, so one `sub` may stand for two steps of the C.
+
+**If you get stuck.** Work out the code for one name on paper, one character at a time. Then check one character against the Listing by following the arithmetic with a real value. The decompiler shows the same rule as one line of C, which is a good check once you have your own.
+
+### Exercise 5.2: Run ex5 with arguments in x64dbg (10 min)
+
+1. Open `ex5.exe` in x64dbg. At the system breakpoint, use File → Change Command Line and add a name you found and the code `AAAAA` after the path.
+2. Type `dump [[peb()+0x20]+0x78]` in the Command box. Read the command line in the dump, first as ASCII, then with the text view switched to Unicode.
+3. Find `wmain` from the "Wrong code." string reference and set a breakpoint on its first instruction. Press F9 until it stops there. Read ECX, then follow RDX in the dump and then `argv[1]`.
+4. Set a breakpoint on the `call` to `wcscmp` in `wmain`, just before "Wrong code.", and press F9. Follow RCX and RDX in the dump: one is your code, the other the expected one.
+5. Open the Log tab and find the text from the Windows function of Exercise 5.1, step 6.
+6. Set the command line again with the right code, restart and check that the door opens.
+
+**What you should see.** In step 3, RDX points at an array of 8-byte pointers; the first is the program's path. If you picked a name with too little clearance in step 1, `wcscmp` is never reached; pick another. After a restart (Ctrl+F2), check whether x64dbg kept your command line, and set it again if not.
+
+## Checkpoint
+
+You have 45 minutes for one program you haven't seen, with no source and no hints in this guide. It needs only what you used today: a `switch` or loops, wide strings, and command-line arguments. It tells you what you can already do alone, and what to revisit.
+
+**The task.** `bin/day3/checkpoint.exe` takes one command-line argument. Find an argument that makes it print its success message, and explain why it works.
+
+**Rules.**
+
+- Don't read its source or its answer. Both are in `lab/solutions/day3`, for afterwards.
+- Use Ghidra, x64dbg and your notes from Days 1 to 3.
+- Work with the method from [Day 0's primer](primers/00-approach.md), and record your work in a copy of the [analysis notes template](templates/analysis-notes.md).
+- Stop at 45 minutes, finished or not, and write down where you got to.
+
+**Hand in:** the argument, and notes on how you found it. Say where `main` is, what each check on the argument does, and what data it uses and where that lives. Then say how you confirmed the answer by running the program.
+
+When the time is up, compare your notes with the answer and model write-up in [lab/solutions/day3/checkpoint.md](../lab/solutions/day3/checkpoint.md). Where your notes differ, find which module covers the step you missed.
 
 ## Beyond this lesson
 
-Extra credit, outside the 7 hours. Each challenge uses today's programs or a copy you change and rebuild. Hints and expected results are in [lab/solutions/day3/extra-credit.md](../lab/solutions/day3/extra-credit.md); try each one first.
+Extra credit, outside the 7.5 hours. Each challenge uses today's programs or a copy you change and rebuild. Hints and expected results are in [lab/solutions/day3/extra-credit.md](../lab/solutions/day3/extra-credit.md); try each one first.
 
 Put each changed copy in a folder of your own, outside the repo. Build it from the Devkit shell with the Makefile's flags, for example `gcc -O0 -s -Wall ex1_sparse.c -o ex1_sparse.exe`. Never edit the files in `lab/day3`; CI checks them.
 
@@ -763,7 +893,7 @@ From the `lab` folder, build `gcc -O2 -s -Wall day3/ex1_vault.c -o <your folder>
 
 Copy `ex3_tower.c` and rewrite `weave` without recursion, using the C you wrote in Exercise 3.1. Rebuild it and check that the same level is still accepted. Then open both builds side by side in Ghidra.
 
-**What to check:** what does Function Call Trees show for each? How many times is the new `weave` called for level 10, compared with the stretch goal of Exercise 3.2? Which loop shape did your version compile to?
+**What to check:** what does Function Call Trees show for each? How many times is the new `weave` called for level 10, compared with the stretch goal of challenge 7? Which loop shape did your version compile to?
 
 ### 5. ex2 from x64dbg alone (★★★)
 
@@ -781,9 +911,51 @@ Build `ex3_tower.c` at `-O2` into your own folder. Find `weave` again and count 
 
 **What to check:** how many self-calls are left, and what replaced the others? How long is the function compared with the `-O0` build? Does the decompiler's version still look like your three lines of C?
 
+### 7. See the recursion in both tools (★)
+
+**Goal:** watch `ex3`'s recursion from both sides: the call tree in Ghidra and the live calls in x64dbg.
+
+1. In Ghidra, put the cursor in `weave` and open Window → Function Call Trees. Look at Incoming Calls and Outgoing Calls. `weave` shows up inside its own outgoing calls, and you can keep expanding it.
+2. Open the Function Call Trees for `main` too. Note which library functions it calls.
+3. In x64dbg, open `ex3.exe` and set a breakpoint on the first instruction of `weave`. Edit it and set Break Condition to `ecx == 1`.
+4. Run it and enter `5`. Each time it stops, RCX holds 1, and the arguments of the calls still waiting are on the stack. Press Ctrl+F9 and read RAX to see what `weave(1)` returns.
+5. Clear the condition and press F9 a few times. Watch RCX change as the calls go deeper and come back.
+
+**Stretch goal:** set the condition to `0` so the breakpoint never stops. Run with level 10 and read the hit count in the Breakpoints tab. Explain the number.
+
+**Why the condition is on ECX.** At the first instruction of `weave`, the prologue has not run yet, so the argument is still in ECX. A few instructions later it has been copied to the home slot and ECX may be reused. Conditions on arguments belong on the function's first instruction.
+
+**What to check:** what does `weave(1)` return, and why does the breakpoint stop more than once? Explain the stretch goal's hit count.
+
+**What you should see.** With level 5, the breakpoint stops several times, because `weave(1)` is reached along more than one path. Open the Call Stack tab at each stop: the number of `weave` lines changes from stop to stop. The stretch goal's count grows fast with the level, which is why recursion like this is slow for large inputs.
+
+### 8. Read ex4's globals at runtime (★)
+
+**Goal:** read `ex4`'s word table from x64dbg's command line while the program runs.
+
+1. Open `ex4.exe` in x64dbg and find the `strcmp` call in the word-compare function.
+2. Set a breakpoint on it and run. Enter `aaa-bbb-ccc-ddd`.
+3. When it stops, follow RCX and RDX in the dump. One is the current word from your input, the other the word it must match.
+4. Use the command line to read the tables directly. Work out the address of `words` from Ghidra and the image base. Then type expressions such as `[address+8*5]` to get the pointer for entry 5, and `dump` that pointer.
+5. Enter the passphrase you found and check that it is accepted.
+
+**What to check:** which register holds the expected word, and what is the first one? Which expression reads entry 5 of `words`?
+
+**What you should see.** The breakpoint stops once per word until a compare fails, so a wrong first word gives one stop per try. `[address]` reads 8 bytes, which is exactly one pointer; reading a 4-byte table entry needs `dword:[address]`. The address from step 4 changes every run, because of ASLR; [In x64dbg](primers/04-memory-layout.md#in-x64dbg) shows where to find the base.
+
+### 9. ex5 without wide strings (★★)
+
+**Goal:** see exactly what changes in the machine code when the same program uses 8-bit text.
+
+Copy `ex5_wide.c` and make a narrow version. Change `wmain` to `main` and `wchar_t` to `char`, drop every `L` before a quote, and use `strcmp`, `strlen` and `OutputDebugStringA`. Build it without `-municode`, then open both builds side by side in Ghidra.
+
+**What to check:** how do the strings differ in Defined Strings? In the code builder, how do the load, the index and the store change? Which imports change, and what call does the narrow `main` make that `wmain` doesn't?
+
 ## Answer key and hints
 
 Try each exercise for at least 15 minutes before you look here. Addresses depend on your compiler, so they're left out. The checks CI runs are in [lab/solutions/day3/checks.psd1](../lab/solutions/day3/checks.psd1), and [lab/solutions/day3/solve\_day3.py](../lab/solutions/day3/solve_day3.py) computes the answers for `ex2` and `ex3`.
+
+Hints and answers for the challenges in [Beyond this lesson](#beyond-this-lesson) are in [lab/solutions/day3/extra-credit.md](../lab/solutions/day3/extra-credit.md).
 
 | Exercise | Hint | Answer |
 | --- | --- | --- |
@@ -795,13 +967,16 @@ Try each exercise for at least 15 minutes before you look here. Addresses depend
 | 2.1 detail | `0x65` is 101 | `x` starts at `0x2A`; each step is `x = (x*37 + 11) % 101`, and the digit is `x % 10`. That gives `03798311`, reversed to `11389730` |
 | 2.2 | Break when the bytes differ, not when they match | The door code is `11389730` |
 | 3.1 | The test at the start checks for `n < 2` | `weave(n)` is `n + 2` for `n < 2`, else `weave(n-1) + weave(n-2) + n`. The constant is `0xA4B5` (42165), and the level is `19` |
-| 3.2 | Count the calls for small levels first: level 1 makes 1 call, level 2 makes 3 | Calls for level `n` = calls for `n-1` + calls for `n-2` + 1, so level 10 makes 177 calls |
 | 4.1 | The order table holds indexes into the word table | `order` is {5, 2, 7, 0}, so the passphrase is `meadow-falcon-tundra-amber`. Words are separated by `-`. Case doesn't matter, because the input is made lower case first |
 | 4.1 globals | Check each `DAT_` address against the Memory Map | The word table, `order` and the try counter (starts at 3) are in `.data`; the input buffer is in `.bss`; the words themselves are in `.rdata` |
-| 4.2 | Each table entry is 8 bytes, because it is a pointer | RDX holds the expected word, `meadow` for the first one |
+| 5.1 | Read the name table and the clearance table at the same index | `argc` must be 3: a name and a code. Clearance must be 3 or more, so only `grace` and `barbara` pass. Each code letter is the name's letter moved 3 places on in the alphabet and made upper case: `(c - 'a' + 3) % 26 + 'A'` |
+| 5.1 answer | Pass both on the command line | `ex5.exe grace JUDFH` or `ex5.exe barbara EDUEDUD`. The code is case-sensitive, because it is compared with `wcscmp` |
+| 5.1 import | Its name ends in a letter | `OutputDebugStringW`, from `kernel32.dll`, with the wide text "Badge reader started." |
+| 5.2 | RCX is the first argument of `wcscmp`, RDX the second | RCX holds your code (`argv[2]`), RDX the expected code, built in a local array on the stack |
+| Checkpoint | No hints here | The answer and a model write-up are in [lab/solutions/day3/checkpoint.md](../lab/solutions/day3/checkpoint.md) |
 
 ## Day 4
 
-Add today's features to your notes: switch recovery, bookmarks, Listing fields and Function Call Trees in Ghidra; conditional breakpoints, the command line and graph view in x64dbg. The [Ghidra reference](ghidra-reference.md) and [x64dbg reference](x64dbg-reference.md) list them all.
+Add today's features to your notes; the [Ghidra reference](ghidra-reference.md) and [x64dbg reference](x64dbg-reference.md) list them all. In Ghidra: switch recovery, bookmarks, Listing fields, Function Call Trees and wide strings. In x64dbg: conditional breakpoints, the command line, graph view, the Unicode dump and Change Command Line.
 
 **Day 4 preview:** an inventory program built from structs, arrays of structs and a linked list. You will recover the structs with Ghidra's Data Type Manager and Structure Editor, and share the types between programs. In x64dbg you will follow them through the dump and the Watch view.

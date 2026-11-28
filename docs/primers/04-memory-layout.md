@@ -1,6 +1,6 @@
 # A program in memory
 
-This primer shows how Windows lays out a 64-bit program once it is loaded. It covers sections, the heap, the stack and DLLs. [Day 1](../day1-training.md) relies on it when you line up addresses between Ghidra and x64dbg, and [Day 3](../day3-training.md) when you look for global data. Reading time: about 20 minutes.
+This primer shows how Windows lays out a 64-bit program once it is loaded. It covers sections, the heap, the stack, DLLs and the command line. [Day 1](../day1-training.md) relies on it when you line up addresses between Ghidra and x64dbg, and [Day 3](../day3-training.md) when you look for globals and arguments. Reading time: about 25 minutes.
 
 ## From file to memory
 
@@ -87,6 +87,49 @@ Every program gets `ntdll.dll` and `kernel32.dll`, and MinGW programs also load 
 
 When you step into a call in x64dbg and land in one of these, you have left your program. Ctrl+F9 runs to the end of the function, and one more F8 takes you back.
 
+## The command line and environment
+
+When Windows starts a process, it copies the command line into the new process's memory. The environment variables, the current folder and the program's path go with it. They sit in a block called the **process parameters**, which the **PEB** points to.
+
+The **PEB** (Process Environment Block) is Windows' own record of the process, kept in the process's memory. On 64-bit Windows its address is at `gs:[0x60]`. Day 13 comes back to it, because anti-debugging checks read it too.
+
+Inside the process parameters:
+
+| What | Where (64-bit) | Form |
+| --- | --- | --- |
+| The process parameters | PEB + `0x20` holds a pointer to them | A Windows structure |
+| The command line | Process parameters + `0x70`; its text pointer is at + `0x78` | One UTF-16 string, as typed: `ex5.exe alice 1234` |
+| The environment | Process parameters + `0x80` holds a pointer to it | `NAME=value` wide strings one after another, with an extra zero at the end |
+
+The command line is one wide string, program path first. [Wide text (UTF-16)](01-numbers-and-data.md#wide-text-utf-16) shows what it looks like in a dump. `GetCommandLineW` returns a pointer to it, and `GetCommandLineA` an 8-bit copy.
+
+**From the command line to argv.** Before `main` runs, MinGW's startup code calls `__getmainargs` in `msvcrt.dll` to split the command line at spaces. Text in double quotes stays one argument. The runtime puts the pieces in an array of pointers and calls `main(argc, argv, envp)`.
+
+```
+argv --> [ argv[0] ][ argv[1] ][ argv[2] ][ NULL ]     8-byte pointers, from the heap
+             |          |          '-----> "1234"
+             |          '----------------> "alice"
+             '---------------------------> "C:\lab\bin\day3\ex5.exe"
+```
+
+`argc` counts the program's name too, so a program run with two arguments sees `argc == 3`. `argv[argc]` is always `NULL`.
+
+**Wide arguments.** A program built with GCC's `-municode` starts at `wmain(int argc, wchar_t **argv)` instead of `main`. Its startup code calls `__wgetmainargs`, and every `argv[i]` points at a UTF-16 string. Many programs written for Windows take their arguments this way.
+
+**Where they arrive.** `main` and `wmain` are ordinary functions, so the calling convention applies. `argc` arrives in ECX and `argv` in RDX; see [The Windows x64 calling convention](05-stack-and-calls.md#the-windows-x64-calling-convention). At `-O0`, GCC saves them in their home slots and reads the arguments back from there:
+
+```
+mov  dword ptr [rbp+0x10], ecx    ; argc
+mov  qword ptr [rbp+0x18], rdx    ; argv
+cmp  dword ptr [rbp+0x10], 3      ; argc == 3: two arguments typed?
+...
+mov  rax, qword ptr [rbp+0x18]    ; argv
+add  rax, 8
+mov  rax, qword ptr [rax]         ; argv[1]: the first argument
+```
+
+`argv[1]` is at `argv + 8` and `argv[2]` at `argv + 0x10`, because each pointer is 8 bytes. In x64dbg, `peb()` in the Command box gives the PEB's address. `dump [[peb()+0x20]+0x78]` shows the command line itself.
+
 ## ASLR: why x64dbg's addresses differ
 
 **ASLR** (Address Space Layout Randomization) makes Windows load each image at a random base instead of the preferred one. It is a security feature: an attacker can't guess where code is. MinGW turns it on by default, so the course programs use it.
@@ -163,6 +206,7 @@ The addresses and offsets in the table are made up; yours will differ. A **stati
 5. A local `char buf[32]` in `main` and a `static char buf[32]` in `main`: where does each one live?
 6. What does the loader write into the IAT, and why can't the linker write it?
 7. Why do two runs of the same program in x64dbg show different addresses for `main`, but the same offset?
+8. `main` starts with `cmp dword ptr [rbp+0x10], 2` and a `jne` to a usage message. How many arguments must you type, and where in memory is the first one?
 
 <details><summary>Answers</summary>
 
@@ -173,5 +217,6 @@ The addresses and offsets in the table are made up; yours will differ. A **stati
 5. The local one is on the stack, in `main`'s frame. The static one is in `.bss`, like a global.
 6. The address of each imported function in its DLL. The DLL's load address isn't known until the program runs.
 7. ASLR loads the image at a different base each time. The whole image moves as one block, so the distance from the base stays the same.
+8. One. `argc` counts the program's name, so 2 means one argument. `argv` was saved at `[rbp+0x18]`, and the first argument's pointer is 8 bytes into it: `[[rbp+0x18]+8]`.
 
 </details>

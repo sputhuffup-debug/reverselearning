@@ -11,6 +11,7 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | Open a program | Start `x64dbg.cmd` and use File → Open. | | Day 1 |
 | Reach the program's entry point | It pauses first at a system breakpoint inside Windows. Press F9 once. | F9 | Day 1 |
 | Restart the program | | Ctrl+F2 | Day 1 |
+| Run a program with command-line arguments | At the system breakpoint, File → Change Command Line. Keep the program's path first, type the arguments after it, then press F9. | | Day 3 |
 
 ## Running and stepping
 
@@ -46,6 +47,9 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | See how you got here | Call Stack tab. It lists the return addresses on the stack; a tail call (`jmp`) leaves no line. | | Day 2 |
 | Go to a caller | Double-click a line in the Call Stack tab. | | Day 2 |
 | See a function as a graph | Press `G` in the disassembly. Press it again to go back to the list. | `G` | Day 3 |
+| Read `main`'s arguments | At `main`'s first instruction, ECX is `argc` and RDX is `argv`. `[rdx+8]` is `argv[1]`; follow it in the dump. | | Day 3 |
+| Read wide (UTF-16) text in the dump | Right-click the dump and switch its text view from ASCII to Unicode. In ASCII view, wide text shows a dot between letters. | | Day 3 |
+| See text sent with `OutputDebugString` | Log tab. | | Day 3 |
 | Read memory in an expression | `[rax]` reads 8 bytes; `dword:[rax+0x14]`, `word:[rax+4]` and `byte:[rax+0x10]` read 4, 2 and 1. Brackets nest: `[[rcx+8]+8]`. | | Day 4 |
 | Follow a struct in the dump | Click in the dump, press Ctrl+G and enter the struct's address or an expression such as `rax`. Read each field at its offset. | Ctrl+G | Day 4 |
 | Follow a pointer field | In the dump, press Ctrl+G and enter the field as an expression, such as `[rcx+8]` for a list node's `next`. Repeat until it is 0. | Ctrl+G | Day 4 |
@@ -94,3 +98,4 @@ Menu paths and shortcuts were written for x64dbg 2026.x and are still to be chec
 | Read memory in an expression | `[address]` reads 8 bytes; `byte:[address]` reads one. | | Day 3 |
 | Set a breakpoint from the command line | `bp address`. `bpcnd address, condition` gives it a condition. | | Day 3 |
 | Show an address in the dump | `dump address`, such as `dump rbp-0x11`. | | Day 3 |
+| Find the command line in memory | `peb()` is the PEB's address. `dump [[peb()+0x20]+0x78]` shows the command line, as UTF-16. | | Day 3 |

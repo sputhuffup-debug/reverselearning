@@ -40,6 +40,8 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Find who uses a string or function | Right-click it → References → Show References to. | Ctrl+Shift+F | Day 1 |
 | Find `main` in a stripped program | Follow a reference from one of its strings, such as "Access granted!". Don't trace the startup code. | | Day 1 |
 | See what a function calls and who calls it | Window → Function Call Trees, with the cursor in the function. It shows Incoming Calls and Outgoing Calls. A recursive function shows up in its own outgoing calls. | | Day 3 |
+| Find wide (UTF-16) strings | Window → Defined Strings. Their Data Type is `unicode`, and their value shows as `u"..."`. | | Day 3 |
+| Tell A and W API functions apart | Symbol Tree → Imports. A name ending in `W`, such as `CreateFileW`, takes UTF-16 text; one ending in `A` takes 8-bit text. | | Day 3 |
 
 ## Annotating
 
@@ -54,6 +56,7 @@ Menu paths and shortcuts were written for Ghidra 12.x and are still to be checke
 | Show a number as characters | Right-click the number in the Listing → Convert. | | Day 2 |
 | Make data a pointer | Select the data in the Listing and press `P`. | `P` | Day 3 |
 | Make an array | Select the first element in the Listing, press `[` and enter the number of elements. | `[` | Day 3 |
+| Make bytes a wide string | Put the cursor on the first byte in the Listing, press `T` and enter `unicode`. | `T` | Day 3 |
 
 ## Patching and export
 
