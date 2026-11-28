@@ -54,14 +54,14 @@ $launcherBefore = Get-Content -LiteralPath $launcher -Raw
 Write-Host "Re-run with everything installed"
 $text = Invoke-Build
 $skips = ([regex]::Matches($text, 'already installed in .* - skipping')).Count
-Write-Result ($skips -eq 4) 'all four tools skipped' "(skipped $skips)"
+Write-Result ($skips -eq 5) 'all five tools skipped' "(skipped $skips)"
 Write-Result ($text -notmatch 'Downloading') 'nothing downloaded'
 
 Write-Host "Re-run with x64dbg.exe missing"
 Remove-Item -LiteralPath (Join-Path $x64 'x64dbg.exe')
 $text = Invoke-Build
 $skips = ([regex]::Matches($text, 'already installed in .* - skipping')).Count
-Write-Result ($skips -eq 3) 'the other three tools skipped' "(skipped $skips)"
+Write-Result ($skips -eq 4) 'the other four tools skipped' "(skipped $skips)"
 Write-Result ($text -match 'Downloading snapshot_') 'x64dbg downloaded again'
 Write-Result ($text -match 'Files added: 1, kept existing: \d+, overwritten: 0') 'only the missing file added' `
     "(merge line: $([regex]::Match($text, 'Files added:.*').Value))"

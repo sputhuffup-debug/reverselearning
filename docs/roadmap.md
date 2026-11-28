@@ -37,7 +37,7 @@ The 15 days fall into three five-day blocks. Each block ends with a day that con
 | **Block 2** | **Programs and Windows** | | |
 | 6 | C++ reversing | A small class hierarchy with virtual functions, `std::string` and `std::vector`, an exception | `this` pointers, vtables, RTTI, constructors and destructors, name demangling, templates |
 | 7 | The PE format and the loader | Programs with resources, TLS callbacks, relocations and delay-loaded imports | PE headers, sections, the IAT, ASLR and relocations, TLS, what runs before `main` |
-| 8 | DLLs and the Windows API | A program and its own DLL; imports resolved at runtime with `GetProcAddress`; a benign API-hashing example | Exports, `LoadLibrary`/`GetProcAddress` patterns, analyzing an EXE and DLL together, common API call patterns |
+| 8 | DLLs, the Windows API and 32-bit code | A program and its own DLL; imports resolved at runtime with `GetProcAddress`; a benign API-hashing example; Day 1 and Day 2 programs rebuilt as 32-bit with `Devkit32.cmd` | Exports, `LoadLibrary`/`GetProcAddress` patterns, analyzing an EXE and DLL together, common API call patterns; 32-bit x86: PE32, EAX to EDI, cdecl, stdcall and fastcall, arguments on the stack, `ret N`, and why the Windows API was stdcall |
 | 9 | x64dbg in depth | Programs built to need each breakpoint kind: a value changed in memory, a hot loop, a multithreaded program | Hardware, memory, conditional and logging breakpoints, tracing, threads, attaching to a running process, guided x64dbg scripts |
 | 10 | Ghidra scripting II (guided, Java) | Days 6 to 9 programs | Scripts that create data types, rename and comment, find constants; running a script headless with `analyzeHeadless` |
 | **Block 3** | **Protections and real-world skills** | | |
@@ -96,7 +96,7 @@ Each day teaches the tool features its exercises need, so every feature is learn
 | 5 | Script Manager, the script editor, the `GhidraScript` API, the console | |
 | 6 | C++ class recovery, vtables as structures, the RTTI analyzer, demangler options | Following `this` through calls |
 | 7 | Program header and PE structures, sections, Function ID, loading PDBs | Memory map, modules and symbols, TLS callbacks, breaking before `main` |
-| 8 | Imports and exports, linked programs (EXE and DLL together), external locations | Breaking on DLL load, symbols for loaded DLLs |
+| 8 | Imports and exports, linked programs (EXE and DLL together), external locations; 32-bit (x86:LE:32) analysis and calling conventions | Breaking on DLL load, symbols for loaded DLLs; x32dbg for 32-bit programs |
 | 9 | | Hardware, memory and logging breakpoints, trace into and trace over, threads, attaching, x64dbg scripts |
 | 10 | Scripts that create types, rename and comment; `analyzeHeadless` with a script | |
 | 11 | Searching memory, scalars and instruction patterns, equates and enums | Logging breakpoints to record a hash as it is computed |
@@ -144,6 +144,7 @@ Work on the kit that supports the course, in priority order. Items marked done c
 | Show the repo's script folders in Ghidra's Script Manager (Script Directories), set up by `Ghidra.cmd` | M5 | Not started |
 | CI runs solution scripts with `analyzeHeadless -postScript` and checks their output | M5 | Done (`scripts.psd1`) |
 | Portable Python in the kit (embeddable package, found through python.org, checksum verified, `Python.cmd` launcher), added with the first milestone whose exercises need it: Day 12's parser at the latest. Day 1's keygen exercise already says "Python is fine", so it may come sooner | M12 or earlier | Not started |
+| 32-bit toolchain in the kit (`w64devkit32\`, `Devkit32.cmd`), built and run in CI | M8 | Done |
 | ScyllaHide plugin for x64dbg | M13 | Not started |
 | UPX in the kit | M14 | Not started |
 | Optional `-IncludeRetSync` (Ghidra and x64dbg stay in step) | Any | Not started |
