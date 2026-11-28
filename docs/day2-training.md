@@ -21,6 +21,10 @@ On Day 1 every program was built with `-O0`, so the code followed the source lin
 - Your Day 1 Ghidra project with `ex1.exe`, `ex2.exe` and `ex3.exe` analyzed, and your Day 1 notes.
 - Today's programs in `lab/day2`. Three of them are the Day 1 sources built again with `-O2`, so you already know the answers to those.
 
+**Before you start**
+
+Read [The stack and the calling convention](primers/05-stack-and-calls.md) in full; today builds on all of it. Skim the `-O2` section of [How C control flow compiles](primers/06-control-flow.md). If registers or flags feel shaky, reread [Registers and flags](primers/02-registers-and-flags.md).
+
 **Lab rules**
 
 - Work in your Windows VM and take a snapshot before you start.

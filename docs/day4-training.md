@@ -21,6 +21,10 @@ Day 4 follows Day 3. Until now you have read code that works on single values. T
 - The course repo. Its `lab/day4` folder holds today's three practice programs.
 - Day 1's skills: finding `main` from strings, renaming, retyping, breakpoints, and lining up addresses in both tools.
 
+**Before you start**
+
+Read [Data in memory](primers/07-data-in-memory.md): arrays, pointers, structs, alignment and linked lists. Refresh the type sizes in [Numbers and data](primers/01-numbers-and-data.md) and the heap in [A program in memory](primers/04-memory-layout.md).
+
 **Lab rules**
 
 The Day 1 rules still apply. Work in a VM with a snapshot, analyze only the practice programs, and keep notes. Today your notes should include a sketch of every struct you recover: offset, size, type and name of each field.

@@ -61,6 +61,28 @@ Scripts automate what the student already understands; they never replace the an
 
 The guides introduce one API call at a time, with a link to Ghidra's API documentation, and never print a complete script. Complete solutions are in `lab/solutions/` for checking afterwards. Scripts are Java, run from the Script Manager; Ghidra compiles them with the kit's JDK, so nothing else needs installing. x64dbg scripts on Day 9 follow the same five steps.
 
+## Primers
+
+The day guides teach tools and techniques; the [primers](primers/README.md) teach the background they assume. Each primer explains one topic from the ground up, uses the course's own programs as examples, and ends with questions to check yourself. A day's guide lists the primers to read under "Before you start".
+
+| Primer | Read before | Status |
+| --- | --- | --- |
+| 1. Numbers and data | Day 1 | Written |
+| 2. Registers and flags | Day 1 | Written |
+| 3. Reading assembly | Day 1 | Written |
+| 4. A program in memory | Day 1 | Written |
+| 5. The stack and the calling convention | Days 1 and 2 | Written |
+| 6. How C control flow compiles | Day 3 | Written |
+| 7. Data in memory | Day 4 | Written |
+| 8. Just enough Java for Ghidra scripts | Day 5 | Written |
+| 9. C++ objects in memory: `this`, vtables, name mangling | Day 6 | Planned |
+| 10. The PE file format | Day 7 | Planned |
+| 11. DLLs and the Windows API | Day 8 | Planned |
+| 12. How debuggers work: breakpoints, single-stepping, exceptions | Day 9 | Planned |
+| 13. Just enough Python for keygens and parsers | Day 11 | Planned |
+| 14. Crypto building blocks: hashes, stream and block ciphers, their constants | Day 11 | Planned |
+| 15. Packers and obfuscation | Day 14 | Planned |
+
 ## Tool mastery
 
 Each day teaches the tool features its exercises need, so every feature is learned on a real problem. A feature first appears in that day's guide and then goes into a running reference: `docs/ghidra-reference.md` and `docs/x64dbg-reference.md` (task, how to do it, shortcut, which day covers it). By Day 15 these replace the Day 1 cheat sheet.
@@ -88,6 +110,7 @@ Each day teaches the tool features its exercises need, so every feature is learn
 Each day ships as one milestone. A day is done when:
 
 - its guide is in `docs/dayN-training.md`, with an answer key
+- its guide lists the primers it relies on under "Before you start", and any new background it needs has a primer in `docs/primers/`
 - its programs are in `lab/dayN/`, and `make` builds them
 - CI builds them on Windows and checks each one with its known answers
 - its script skeletons (if any) are in `lab/dayN/scripts/`, and CI runs the matching solutions headless
