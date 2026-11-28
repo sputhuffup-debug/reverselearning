@@ -15,5 +15,9 @@
            Keygen = 'keygen_ex2.py'; KeygenArgs = @('reverser') }
         @{ Name = 'ex3 right key';      Program = 'ex3'; Input = @('R3v3rs1ng_D4y1');      Exit = 0; Expect = 'License OK.' }
         @{ Name = 'ex3 wrong key';      Program = 'ex3'; Input = @('R3v3rs1ng');           Exit = 0; Expect = 'Bad license key.' }
+        @{ Name = 'checkpoint right code';    Program = 'checkpoint'; Input = @('Br34kp01nt'); Exit = 0; Expect = 'Unlocked. Checkpoint passed.' }
+        @{ Name = 'checkpoint wrong code';    Program = 'checkpoint'; Input = @('Br34kp01nx'); Exit = 1; Expect = 'Wrong code.' }
+        @{ Name = 'checkpoint table as text'; Program = 'checkpoint'; Input = @('Bs57ou68v}'); Exit = 1; Expect = 'Wrong code.' }
+        @{ Name = 'checkpoint wrong length';  Program = 'checkpoint'; Input = @('Br34k');      Exit = 1; Expect = 'Wrong length.' }
     )
 }

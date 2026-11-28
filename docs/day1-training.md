@@ -22,7 +22,7 @@ By the end of Day 1 you will find, understand and bypass a license check in a Wi
 
 **Before you start**
 
-Read these primers first, ideally the day before. They take about 2 hours together, and every exercise today assumes them.
+You read these primers on [Day 0](day0-training.md), after [How to approach an unknown program](primers/00-approach.md). Every exercise today assumes them; skim the list again as a refresher.
 
 - [Numbers and data](primers/01-numbers-and-data.md): hex, bytes, little-endian, signed values, XOR.
 - [Registers and flags](primers/02-registers-and-flags.md): RAX to R15, RIP, and the flags that decide a jump.
@@ -31,6 +31,8 @@ Read these primers first, ideally the day before. They take about 2 hours togeth
 - [The stack and the calling convention](primers/05-stack-and-calls.md): read up to the calling convention; Day 2 covers the rest.
 
 During the day, **Background** lines point to the primer section behind a step. Open one when a step doesn't make sense.
+
+Start a copy of the [notes template](templates/analysis-notes.md) from Day 0 for each program. The checkpoint at the end of the day uses it too.
 
 **Lab rules**
 
@@ -44,22 +46,23 @@ Around each set of numbered steps you will find why it matters, what you should 
 
 ## Schedule
 
-The day runs about 7 hours with breaks, and roughly half of it is hands-on exercise time. The extra-credit challenges in [Beyond this lesson](#beyond-this-lesson) are outside these hours.
+The day runs a little over 7 hours with breaks, and roughly half of it is hands-on exercise time. The extra-credit challenges in [Beyond this lesson](#beyond-this-lesson) are outside these hours.
 
 | Time | Block | What you do |
 | --- | --- | --- |
-| 0:00–0:30 | Module 0: Setup | Snapshot the VM, start the kit, compile the three practice programs |
-| 0:30–1:20 | Module 1A: Ghidra tour | Project, import, auto-analysis, the main windows |
-| 1:20–2:25 | Exercise 1.1–1.2 | Find the password in `ex1`; clean up `ex2` in the decompiler |
-| 2:25–2:40 | Break |  |
-| 2:40–3:30 | Module 2A: x64dbg tour | Layout, breakpoints, stepping, registers and stack |
-| 3:30–4:30 | Exercise 2.1–2.3 | Debug `ex1` and `ex2`; match addresses with Ghidra |
-| 4:30–5:15 | Lunch |  |
-| 5:15–6:35 | Module 3: Capstone | Solve and patch `ex3` with both tools |
-| 6:35–7:00 | Review | Go over the answer key and write up your notes |
-| 7:00–7:15 | Wrap-up | Cheat sheet and the plan for Day 2 |
+| 0:00–0:15 | Module 0: Setup | Snapshot the VM, start the kit, compile today's programs |
+| 0:15–1:05 | Module 1A: Ghidra tour | Project, import, auto-analysis, the main windows |
+| 1:05–2:10 | Exercise 1.1–1.2 | Find the password in `ex1`; clean up `ex2` in the decompiler |
+| 2:10–2:25 | Break |  |
+| 2:25–3:15 | Module 2A: x64dbg tour | Layout, breakpoints, stepping, registers and stack |
+| 3:15–4:15 | Exercise 2.1–2.3 | Debug `ex1` and `ex2`; match addresses with Ghidra |
+| 4:15–5:00 | Lunch |  |
+| 5:00–6:20 | Module 3: Capstone | Solve and patch `ex3` with both tools |
+| 6:20–7:05 | Checkpoint | Solve `checkpoint.exe` alone, without its source, and write it up |
+| 7:05–7:15 | Review | Go over the answer key and check your checkpoint |
+| 7:15–7:20 | Wrap-up | Cheat sheet and the plan for Day 2 |
 
-## Module 0: Build the practice programs (30 min)
+## Module 0: Build the practice programs (15 min)
 
 You will reverse three programs that get harder in turn: a hardcoded password, a serial number worked out from a name, and a hidden key with an anti-debugging check. Their sources are in the repo's `lab/day1` folder and linked below. Don't reread the source once it's compiled; the aim is to recover it with the tools.
 
@@ -72,13 +75,15 @@ You will reverse three programs that get harder in turn: a hardcoded password, a
 **Compile** with `make`. Open `RE-Portable\Devkit.cmd`; its shell starts in the repo's `lab` folder. Then run:
 
 ```bash
-make day1     # builds bin/day1/ex1.exe, ex2.exe and ex3.exe
+make day1     # builds bin/day1/ex1.exe, ex2.exe, ex3.exe and checkpoint.exe
 make clean    # deletes them
 ```
 
 The `.c` files stay where they are; only the executables go into `bin/day1`. Plain `make` builds every day's programs at once. The Makefile compiles with `-O0`, which keeps the code close to the source, and `-s`, which strips the function names so you have to recover them yourself. After you change a source, run `make` again; it rebuilds only what changed.
 
-Run each `.exe` in `bin/day1` once with a wrong answer so you know what failure looks like. Then close the `.c` files and leave them closed until the answer key.
+`checkpoint.exe` is for the [Checkpoint](#checkpoint) at the end of the day. Its source is in `lab/solutions`, so don't open it.
+
+Run `ex1`, `ex2` and `ex3` once each with a wrong answer so you know what failure looks like. Then close the `.c` files and leave them closed until the answer key.
 
 **Why it matters.** The `-s` flag gives you what a real stripped program gives you: no function names, only imports and strings.
 
@@ -522,6 +527,21 @@ Short jumps are 2 bytes: `74` is `je`, `75` is `jne` and `EB` is `jmp`; `90` is 
 
 - If the patched copy always prints "Debugger detected", that patch sent execution the wrong way. Check where the original jump went, then apply the rule above.
 - For the write-up, subtract the base from each x64dbg address. The offsets then match Ghidra's addresses minus `0x140000000`.
+
+## Checkpoint
+
+Allow about 45 minutes. Solve `bin/day1/checkpoint.exe` on your own, without opening its source or the solutions folder. Everything it needs was covered today.
+
+Work the way Day 0's [How to approach an unknown program](primers/00-approach.md) describes, and fill in a fresh copy of the [notes template](templates/analysis-notes.md) as you go. Use both tools: Ghidra to read and rename, x64dbg to confirm.
+
+**Hand in:**
+
+- the code that makes it print its success message, and a run that shows it
+- your filled-in notes: each check the program makes, the functions you renamed, and how you found each one
+- one runtime bypass in x64dbg: which flag or register you changed, and where
+- a patched copy that accepts any input, with the offset and the old and new bytes of each patched instruction
+
+Afterwards, check your work against [lab/solutions/day1/checkpoint.md](../lab/solutions/day1/checkpoint.md), which contains spoilers. It has the answer, a model write-up and the common mistakes.
 
 ## Beyond this lesson
 
